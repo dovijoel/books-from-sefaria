@@ -6,12 +6,24 @@ How to decide who handles what.
 
 | Work Type | Route To | Examples |
 |-----------|----------|----------|
-| {domain 1} | {Name} | {example tasks} |
-| {domain 2} | {Name} | {example tasks} |
-| {domain 3} | {Name} | {example tasks} |
-| Code review | {Name} | Review PRs, check quality, suggest improvements |
-| Testing | {Name} | Write tests, find edge cases, verify fixes |
-| Scope & priorities | {Name} | What to build next, trade-offs, decisions |
+| Architecture & system design | Mal | API contracts, service boundaries, Docker Compose, ADRs |
+| Code review & merge gate | Mal | PR reviews, quality gates, cross-cutting concerns |
+| Deployment & DevOps | Mal | Docker, docker-compose.yml, CI/CD, environment config |
+| Frontend UI / React components | Kaylee | Next.js pages, shadcn/ui components, Tailwind styles |
+| Book settings configuration form | Kaylee | All fields from book_settings.json schema |
+| Sefaria text search/browse UI | Kaylee | Search bar, text selector, range/daf pickers |
+| Job status / PDF download UI | Kaylee | Progress polling, download button, error states |
+| FastAPI backend | Zoe | API routes, Pydantic models, request/response logic |
+| Sefaria API integration | Zoe | Text fetching, schema lookup, link resolution |
+| LaTeX / PDF generation pipeline | Zoe | Notebook port, LaTeX rendering, pdflatex subprocess |
+| Celery / async job queue | Zoe | Job submission, status tracking, Redis config |
+| Database schema & migrations | Zoe | PostgreSQL models, Alembic migrations |
+| Backend unit & integration tests | Wash | pytest, httpx, fixtures, mocks for Sefaria API |
+| Frontend unit tests | Wash | Jest, React Testing Library |
+| E2E tests | Wash | Playwright, full user flow coverage |
+| CI/CD pipeline | Wash | GitHub Actions workflows, test gates |
+| Test infrastructure | Wash | Factories, fixtures, test data, coverage config |
+| Scope & priorities | Mal | What to build next, trade-offs, decisions |
 | Async issue work (bugs, tests, small features) | @copilot 🤖 | Well-defined tasks matching capability profile |
 | Session logging | Scribe | Automatic — never needs routing |
 

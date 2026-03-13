@@ -1,0 +1,23 @@
+{
+  "universe_usage_history": [
+    {
+      "universe": "Firefly",
+      "used_at": "2025-06-16T00:00:00Z",
+      "assignment_id": "sefaria-webapp-001"
+    }
+  ],
+  "assignment_cast_snapshots": {
+    "sefaria-webapp-001": {
+      "assignment_id": "sefaria-webapp-001",
+      "project": "Sefaria Book Creator Web App",
+      "universe": "Firefly",
+      "cast_at": "2025-06-16T00:00:00Z",
+      "agents": {
+        "mal": { "persistent_name": "Mal", "role": "Lead / Architect" },
+        "kaylee": { "persistent_name": "Kaylee", "role": "Frontend Developer" },
+        "zoe": { "persistent_name": "Zoe", "role": "Backend Developer" },
+        "wash": { "persistent_name": "Wash", "role": "QA / Test Engineer" }
+      }
+    }
+  }
+}
