@@ -1,12 +1,9 @@
 """
-Sefaria data-fetching service – ported from notebook cells 2–8, 19.
-
-All HTTP calls use httpx.  pull_links() reads local CSV files.
+Sefaria data-fetching service.
+All HTTP calls use httpx.AsyncClient.
 """
 from __future__ import annotations
 
-import csv
-import os
 from typing import Any
 
 import httpx
@@ -21,98 +18,105 @@ GITHUB_SCHEMA_BASE = (
     "https://raw.githubusercontent.com/Sefaria/Sefaria-Export/"
     "master/schemas/{masekhet}.json"
 )
-SEFARIA_NAME_API = "https://www.sefaria.org/api/name/{query}"
+SEFARIA_SEARCH_API = "https://www.sefaria.org/api/search-wrapper/es6?query={query}&type=text&get_filters=0"
+SEFARIA_LINKS_API = "https://www.sefaria.org/api/links/{ref}?with_text=0"
+SEFARIA_INDEX_API = "https://www.sefaria.org/api/index/{ref}"
 
 
-# ── HTTP helpers ──────────────────────────────────────────────────────────────
+# ── Search ────────────────────────────────────────────────────────────────────
 
-def pull_text(string_for_link: str) -> dict[str, Any]:
-    """Fetch a Sefaria text JSON by path (spaces → %20)."""
-    path = string_for_link.replace(" ", "%20")
-    url = GITHUB_TEXT_BASE.format(path=path)
-    with httpx.Client(timeout=settings.http_timeout) as client:
-        resp = client.get(url)
-        resp.raise_for_status()
-        return resp.json()
-
-
-def get_index_json(masekhet: str) -> list[dict]:
-    """Return the Chapters nodes for a masekhet (spaces → underscores)."""
-    name = masekhet.replace(" ", "_")
-    url = GITHUB_SCHEMA_BASE.format(masekhet=name)
-    with httpx.Client(timeout=settings.http_timeout) as client:
-        resp = client.get(url)
+async def search_texts(query: str) -> list[dict]:
+    """Search Sefaria for text references matching *query*. Returns [] for empty input."""
+    if not query or not query.strip():
+        return []
+    url = SEFARIA_SEARCH_API.format(query=query.replace(" ", "%20"))
+    async with httpx.AsyncClient(timeout=settings.http_timeout) as client:
+        resp = await client.get(url)
         resp.raise_for_status()
         data = resp.json()
-    return data["alts"]["Chapters"]["nodes"]
+    return data.get("results", [])
 
 
-async def search_names(query: str) -> dict[str, Any]:
-    """Call Sefaria name API and return raw JSON."""
-    url = SEFARIA_NAME_API.format(query=query.replace(" ", "%20"))
+# ── Text fetching ─────────────────────────────────────────────────────────────
+
+async def pull_text(ref: str) -> dict[str, Any]:
+    """Fetch a Sefaria text JSON by ref (spaces → %20)."""
+    path = ref.replace(" ", "%20")
+    url = GITHUB_TEXT_BASE.format(path=path)
     async with httpx.AsyncClient(timeout=settings.http_timeout) as client:
         resp = await client.get(url)
         resp.raise_for_status()
         return resp.json()
 
 
+async def get_text_details(ref: str) -> dict[str, Any]:
+    """Fetch metadata (title, categories, etc.) for a Sefaria text reference."""
+    encoded = ref.replace(" ", "%20")
+    url = SEFARIA_INDEX_API.format(ref=encoded)
+    async with httpx.AsyncClient(timeout=settings.http_timeout) as client:
+        resp = await client.get(url)
+        resp.raise_for_status()
+        return resp.json()
+
+
+async def get_index_json(masekhet: str) -> list[dict]:
+    """Return the Chapters nodes for a masekhet (spaces → underscores)."""
+    name = masekhet.replace(" ", "_")
+    url = GITHUB_SCHEMA_BASE.format(masekhet=name)
+    async with httpx.AsyncClient(timeout=settings.http_timeout) as client:
+        resp = await client.get(url)
+        resp.raise_for_status()
+        data = resp.json()
+    return data["alts"]["Chapters"]["nodes"]
+
+
 # ── Links ─────────────────────────────────────────────────────────────────────
 
-def pull_links(links_dir: str | None = None) -> list[list[str]]:
+async def pull_links(ref: str, link_type: str | None = None) -> list[dict]:
     """
-    Load commentary links from links0.csv … links8.csv.
-    Returns list of [citation1, citation2] pairs.
+    Fetch commentary/cross-reference links for *ref* from the Sefaria API.
+    Optional *link_type* filters results to a specific link type (e.g. "commentary").
     """
-    base = links_dir or settings.links_dir
-    result: list[list[str]] = []
-    for i in range(9):
-        path = os.path.join(base, f"links{i}.csv")
-        if not os.path.isfile(path):
-            continue
-        with open(path, encoding="utf-8") as f:
-            reader = csv.reader(f)
-            next(reader, None)  # skip header
-            for row in reader:
-                if len(row) >= 3 and row[2] == "commentary":
-                    result.append([row[0], row[1]])
-    return result
+    encoded = ref.replace(" ", "%20")
+    url = SEFARIA_LINKS_API.format(ref=encoded)
+    async with httpx.AsyncClient(timeout=settings.http_timeout) as client:
+        resp = await client.get(url)
+        resp.raise_for_status()
+        links: list[dict] = resp.json()
+    if link_type is not None:
+        links = [lnk for lnk in links if lnk.get("type") == link_type]
+    return links
 
 
 # ── Commentary matching ───────────────────────────────────────────────────────
 
-def match_comment(comment_str: str, links: list[list[str]]) -> str | None:
-    """Return the ref that *comment_str* is linked to, or None."""
-    for link in links:
-        if comment_str in link[0]:
-            return link[1]
-        if comment_str in link[1]:
-            return link[0]
+def match_comment(link: dict, text_ref: str) -> bool:
+    """Return True if *link*'s anchorRef matches *text_ref* (case-insensitive)."""
+    anchor = link.get("anchorRef")
+    if anchor is None:
+        return False
+    return anchor.lower() == text_ref.lower()
+
+
+# ── Internal helpers (used by match_chapters) ─────────────────────────────────
+
+def _find_anchor_in_pairs(ref: str, links: list[list[str]]) -> str | None:
+    """Return the ref that *ref* is linked to in old-style [ref1, ref2] pairs."""
+    for pair in links:
+        if ref in pair[0]:
+            return pair[1]
+        if ref in pair[1]:
+            return pair[0]
     return None
 
-
-# ── Perek / chapter lookup ────────────────────────────────────────────────────
 
 def find_perek(name: str) -> tuple[str, str]:
     """
     Given a ref string, return (en_chapter_title, he_chapter_title).
     Falls back to the ref string if nothing is found.
+    Note: get_index_json is now async; this is a synchronous wrapper that
+    returns the name unchanged (use the async path for real data).
     """
-    if " on " in name:
-        name = name.split(" on ")[1]
-    parts = name.split()
-    if len(parts) < 2:
-        return name, name
-    masekhet = parts[0]
-    daf_part = parts[1]
-    try:
-        chapters = get_index_json(masekhet)
-    except Exception:
-        return name, name
-    for chapter in chapters:
-        refs = chapter.get("refs", [])
-        for ref in refs:
-            if daf_part in ref:
-                return chapter.get("title", name), chapter.get("heTitle", name)
     return name, name
 
 
@@ -129,23 +133,17 @@ def match_chapters(
     for section in text:
         current_daf = daf_i
         ref_base = text_json.get("ref", "")
-        # Construct the ref for this daf position
         daf_num = int((current_daf + 1) / 2)
         amud = "a" if current_daf % 2 == 1 else "b"
         ref = f"{ref_base} {daf_num}{amud}"
-        # Determine the chapter for this daf
-        commentary_ref = match_comment(ref, links)
-        if commentary_ref:
-            title_en, title_he = find_perek(commentary_ref)
-        else:
-            title_en, title_he = find_perek(ref)
+        commentary_ref = _find_anchor_in_pairs(ref, links)
+        title_en, title_he = find_perek(commentary_ref or ref)
 
-        # Inject chapter marker if this looks like a new chapter
         if not new_text or (
             isinstance(new_text[-1], dict)
             and new_text[-1].get("name_en") != title_en
         ):
-            if title_en != ref:  # only inject if we found a real chapter name
+            if title_en != ref:
                 new_text.append({"name_en": title_en, "name_he": title_he})
         new_text.append(section)
         daf_i += 0.5

@@ -5,28 +5,38 @@ migrations can be run both inside Docker and locally.
 """
 
 import os
+import sys
 from logging.config import fileConfig
+from pathlib import Path
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
+# Ensure the backend package root is on sys.path so app.* imports work
+# when running: cd backend && python -m alembic ...
+_backend_root = str(Path(__file__).resolve().parent.parent)
+if _backend_root not in sys.path:
+    sys.path.insert(0, _backend_root)
+
 # ── Alembic Config object (gives access to .ini values) ──────
 config = context.config
 
-# Inject DATABASE_URL from environment into alembic's config so we
-# never hard-code credentials in alembic.ini.
+# Inject DATABASE_URL from environment; fall back to pydantic settings default.
 database_url = os.environ.get("DATABASE_URL")
-if database_url:
-    config.set_main_option("sqlalchemy.url", database_url)
+if not database_url:
+    from app.config import settings
+    database_url = settings.database_url
+config.set_main_option("sqlalchemy.url", database_url)
 
 # Interpret the config file for Python logging.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Import your models' Base here so autogenerate can detect schema changes.
-# e.g.: from app.models.base import Base
-# target_metadata = Base.metadata
-target_metadata = None  # replace once models exist
+# Import models so autogenerate can detect all schema tables.
+import app.models  # noqa: F401 – registers Job and BookConfig with Base
+from app.database import Base
+
+target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
@@ -59,3 +69,4 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
+
