@@ -68,6 +68,7 @@ class BookConfigResponse(BookConfigCreate):
     id: str
     created_at: str
     updated_at: str
+    format: dict = Field(default_factory=dict)
 
     model_config = {"from_attributes": True}
 

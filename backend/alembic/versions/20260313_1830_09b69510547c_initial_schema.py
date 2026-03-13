@@ -32,7 +32,7 @@ def upgrade() -> None:
     op.create_index(op.f('ix_book_configs_name'), 'book_configs', ['name'], unique=False)
     op.create_table('jobs',
     sa.Column('id', sa.String(length=36), nullable=False),
-    sa.Column('status', sa.Enum('PENDING', 'RUNNING', 'SUCCESS', 'FAILURE', name='jobstatus'), nullable=False),
+    sa.Column('status', sa.Enum('pending', 'running', 'success', 'failure', name='jobstatus'), nullable=False),
     sa.Column('config_id', sa.String(length=36), nullable=True),
     sa.Column('config_snapshot', sa.Text(), nullable=True),
     sa.Column('pdf_path', sa.String(length=512), nullable=True),

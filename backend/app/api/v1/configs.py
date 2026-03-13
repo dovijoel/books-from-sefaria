@@ -21,11 +21,16 @@ from app.schemas.config import (
 router = APIRouter(prefix="/configs", tags=["configs"])
 
 
+_FORMAT_EXCLUDE = {"name", "description", "texts"}
+
+
 def _to_response(cfg: BookConfig) -> BookConfigResponse:
     data = json.loads(cfg.settings_json)
+    fmt = {k: v for k, v in data.items() if k not in _FORMAT_EXCLUDE}
     return BookConfigResponse(
         **data,
         id=cfg.id,
+        format=fmt,
         created_at=cfg.created_at.isoformat(),
         updated_at=cfg.updated_at.isoformat(),
     )

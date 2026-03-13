@@ -3,7 +3,7 @@ Integration tests for the Sefaria proxy API  (/api/v1/sefaria)
 TODO: implement when backend/app/routers/sefaria.py is ready
 """
 import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 
 MOCK_SEARCH_RESULTS = [

@@ -11,7 +11,9 @@ from app.database import Base, engine
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    Base.metadata.create_all(bind=engine)
+    # Only auto-create tables for SQLite (dev). PostgreSQL uses Alembic migrations.
+    if "sqlite" in settings.database_url.lower():
+        Base.metadata.create_all(bind=engine)
     yield
 
 

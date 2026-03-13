@@ -113,7 +113,7 @@ function fromBackendJob(data: Record<string, unknown>): Job {
     createdAt: data.created_at as string,
     completedAt: data.updated_at as string,
     error: data.error_message as string | undefined,
-    pdfUrl: data.pdf_path ? `/api/v1/jobs/${data.id}/download` : undefined,
+    pdfUrl: data.pdf_path ? `${apiClient.defaults.baseURL}/api/v1/jobs/${data.id}/download` : undefined,
   };
 }
 
@@ -171,7 +171,7 @@ export const api = {
   },
 
   downloadPdf: (jobId: string): string => {
-    return `/api/v1/jobs/${jobId}/download`;
+    return `${apiClient.defaults.baseURL}/api/v1/jobs/${jobId}/download`;
   },
 };
 

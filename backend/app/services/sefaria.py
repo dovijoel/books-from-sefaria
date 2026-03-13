@@ -40,11 +40,21 @@ async def search_texts(query: str) -> list[dict]:
 # ── Text fetching ─────────────────────────────────────────────────────────────
 
 async def pull_text(ref: str) -> dict[str, Any]:
-    """Fetch a Sefaria text JSON by ref (spaces → %20)."""
+    """Fetch a Sefaria text JSON by ref (spaces → %20). Async version for FastAPI routes."""
     path = ref.replace(" ", "%20")
     url = GITHUB_TEXT_BASE.format(path=path)
     async with httpx.AsyncClient(timeout=settings.http_timeout) as client:
         resp = await client.get(url)
+        resp.raise_for_status()
+        return resp.json()
+
+
+def pull_text_sync(ref: str) -> dict[str, Any]:
+    """Synchronous version of pull_text for use in Celery tasks."""
+    path = ref.replace(" ", "%20")
+    url = GITHUB_TEXT_BASE.format(path=path)
+    with httpx.Client(timeout=settings.http_timeout) as client:
+        resp = client.get(url)
         resp.raise_for_status()
         return resp.json()
 

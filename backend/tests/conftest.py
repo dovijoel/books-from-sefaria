@@ -12,6 +12,8 @@ TEST_DATABASE_URL = "sqlite:///./test.db"
 @pytest.fixture(scope="session")
 def test_engine():
     engine = create_engine(TEST_DATABASE_URL, connect_args={"check_same_thread": False})
+    import app.models.config  # noqa: F401 – register BookConfig with Base
+    import app.models.job     # noqa: F401 – register Job with Base
     from app.database import Base
     Base.metadata.create_all(bind=engine)
     yield engine
