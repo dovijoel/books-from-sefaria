@@ -1,0 +1,76 @@
+\documentclass[
+coverheight=9.0in,
+coverwidth=6.0in,
+spinewidth=0.8122522522522522in,
+bleedwidth=.125in,
+marklength=0in,
+12pt,
+pagecolor=background,
+]{bookcover}
+
+\usepackage{polyglossia}
+\usepackage{xcolor}
+\definecolor{background}{HTML}{06038D}
+\definecolor{text}{HTML}{D9911A}
+
+\newcommand{\hebtitle}{
+תהלים מדרש}
+
+\newcommand{\engtitle}{
+%engtitle
+}
+
+\newcommand{\setspineheight}{
+\fontsize{0.31875in}{0.31875in}\selectfont}
+
+\setdefaultlanguage{english}
+\setotherlanguage{hebrew}
+%\setmainfont[BoldFont = {Shlomo semiStam}]{Shlomo}
+\setmainfont{Times New Roman}%\setmainfont{Taamey Ashkenaz}
+%\setsansfont{Mekorot-Rashi}
+\newfontfamily\englishfont{Times New Roman}
+\newbookcovercomponenttype{center rotate}{
+	\vfill
+	\centering
+	\rotatebox[origin=c]{90}{#1}
+	\vfill}
+
+\letnamebookcoverpart{bg spine bottom}{bg spine}[,,,\partheight-\bleedwidth-\spinewidth]
+
+\newcommand{\hebtext}[1]{
+	\begin{hebrew}
+		#1
+	\end{hebrew}
+}
+
+\begin{document}
+	\begin{bookcover}
+		\begin{bookcoverelement}{center rotate}{spine}[,,,-0.34\coverheight]
+			%\color{yellow!60!black}\huge\sffamily\bfseries
+			\textcolor{text}{\setspineheight\hebtext{\hebtitle} \space \engtitle }
+		\end{bookcoverelement}
+		\begin{bookcoverelement}{normal}{bg spine bottom}[0.1\spinewidth,0in,0.1\spinewidth,0in]
+			%\textcolor{text}{Ktavi}
+		\end{bookcoverelement}
+		%	\begin{bookcoverelement}{center}{bg spine bottom}
+			%		\raisebox{\bleedwidth+2\baselineskip}{\textcolor{gold}{Kasimer}}
+			%	\end{bookcoverelement}
+		%	\begin{bookcoverelement}{center}{bg spine bottom}
+			%		\raisebox{\bleedwidth}{\textcolor{gold}{Edition}}
+			%	\end{bookcoverelement}
+		
+		\begin{bookcoverelement}{center}{back}
+			\begin{Huge}
+				\textcolor{text}{\hebtext{\hebtitle}}
+				\textcolor{text}{\engtitle}
+			\end{Huge}
+			\vspace{2\baselineskip}
+			\begin{large}
+			\end{large}
+		\end{bookcoverelement}
+		\begin{bookcoverelement}{center}{front}[,,,0.8\coverheight]
+			\textcolor{text}{
+Made by Ktavi		}
+		\end{bookcoverelement}
+	\end{bookcover}
+\end{document}

@@ -1,0 +1,169 @@
+\documentclass[12pt, openany]{book}
+\usepackage[
+paperheight
+paperwidth
+top
+bottom
+inner
+outer
+marginparsep=0.1in,
+headsep=16pt
+]{geometry}
+
+%title_here
+\usepackage{titlesec}
+\renewcommand{\partname}[1]{}
+\usepackage{resources/unnumberedtotoc}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+%pagenumber
+%header
+
+\usepackage{paracol}
+\usepackage{anyfontsize}
+\usepackage{ragged2e}
+\usepackage{polyglossia}
+\usepackage{multicol}
+\usepackage{hyperref}
+\usepackage[marginal]{footmisc}
+\usepackage[titles]{tocloft}
+\usepackage{xifthen}
+\usepackage{graphicx}
+%twocolfootnote
+
+\setdefaultlanguage{hebrew}
+\setotherlanguage{english}
+\usepackage{fontspec}
+%sethebfont
+%setengfont
+%setcommentfont
+
+\newcommand{\sethebfont}{
+%setfontsize
+}
+
+\newcommand{\setengfont}{
+%engfontsize
+}
+
+\newcommand{\LTRmark}{‎}
+
+\newcommand{\hebeng}[2]{
+	{\sethebfont #1}
+	
+	%\vspace{0.5\baselineskip}
+	{\beginL\englishfont\sethebfont{\raggedright #2 \hfill} \LTRmark\endL}
+	
+	\vspace{\baselineskip}
+}
+
+\newcommand{\twocol}[1]{
+	{\sethebfont \begin{multicols}{2}
+			#1
+	\end{multicols}}	
+}
+
+\newcommand{\textblock}[1]{
+{\sethebfont #1\\}	
+}
+
+%setparskip
+\setlength\parindent{0in}
+\sloppy
+\newcommand{\chapname}{}
+\newcommand{\sectname}{}
+
+\newcommand{\newchap}[1]{
+	\addcontentsline{toc}{chapter}{#1}
+	\renewcommand{\chapname}{#1}
+		\begin{center}
+			\textbf{%
+%chapfontsize
+				#1}
+		\end{center}
+}
+
+\let\footnoterule\relax
+\setlength\premulticols{10\baselineskip}
+%setcolumnsep
+
+\newcommand{\newsection}[1]{
+	%\addcontentsline{toc}{section}{#1}
+	\renewcommand{\sectname}{#1}	
+	\vspace{-\baselineskip}
+	\begin{center}
+		\textbf{%
+%chapfontsize
+			#1}
+	\end{center}
+	\vspace{-\baselineskip}
+	\nopagebreak
+}
+
+\newcommand{\footnotecomment}[1]{
+	\renewcommand\thefootnote{}
+	\footnote{\textsf{#1}}}
+
+\newcommand{\parencomment}[1]{\footnotesize (#1)}
+
+\newcommand{\blockcomment}[2]{ 
+\vspace{\baselineskip}
+\newsection{#1}
+\sethebfont	\textsf{#2}
+\vspace{\baselineskip}}
+
+\newcommand{\commenta}[1]{\footnotecomment{#1}\hspace{0em}}
+
+\newcommand{\vsnum}[1]{(\hebrewnumeral{#1})\space}
+\newcommand{\vsnumeng}[1]{(#1)\space}
+
+\begin{document}
+\frontmatter
+\pagenumbering{roman}
+
+\newcommand{\oneline}[1]{%
+	\newdimen{\namewidth}%
+	\setlength{\namewidth}{\widthof{#1}}%
+	\ifthenelse{\lengthtest{\namewidth < \textwidth}}%
+	{#1}% do nothing if shorter than text width
+	{\resizebox{\textwidth}{!}{#1}}% scale down
+}
+
+\title{\oneline{\hspace*{0.5in}\texttitle\hspace*{0.5in}}}
+
+\author{}
+
+\date{}
+
+\maketitle
+
+\begin{minipage}[b][\textheight][b]{\textwidth}\englishfont\footnotesize
+	\begin{english}
+		\vfill
+		The following book includes:
+%license info
+		It was retrieved from Sefaria on \today\space \texthebrew{(\Hebrewtoday)}.  It was typeset and formatted by Ktavi.
+		\clearpage
+		
+	\end{english}
+\end{minipage}
+
+\titleformat{\chapter}[hang]{\huge\bfseries}{\thechapter.}{1em}{}
+\titlespacing*{\chapter}{0pt}{-3em}{1.1\parskip}
+\titlelabel{\thetitle\quad}
+%\addtocontents{toc}{\protect\vspace{-\baselineskip}}
+\addtocontents{toc}{\protect\begin{multicols}{2}}
+%\vspace*{-5\baselineskip}
+\tableofcontents
+
+
+\clearpage
+\mainmatter
+\pagenumbering{arabic}
+
+%body_here
+
+\addtocontents{toc}{\protect\end{multicols}}
+\end{document}
