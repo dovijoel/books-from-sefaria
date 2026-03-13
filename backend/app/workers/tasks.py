@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from app.database import SessionLocal
 from app.models.job import Job, JobStatus
 from app.schemas.config import BookConfigCreate, config_to_dict
@@ -22,15 +24,13 @@ def generate_pdf_task(self, config_dict: dict, job_id: str) -> dict:
 
         config = BookConfigCreate(**config_dict)
         flat_config = config_to_dict(config)
-        pdf_path, cover_pdf_path, page_count = build_book(flat_config, job_id)
+        pdf_path = asyncio.run(build_book(flat_config, job_id))
 
         # Mark job as successful
         job = db.get(Job, job_id)
         if job:
             job.status = JobStatus.SUCCESS
             job.pdf_path = pdf_path
-            job.cover_pdf_path = cover_pdf_path
-            job.page_count = page_count
             db.commit()
 
         return {"job_id": job_id, "pdf_path": pdf_path}
