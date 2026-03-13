@@ -23,6 +23,8 @@ backend/*.pyc
 backend/**/*.pyc
 backend/.pytest_cache/
 backend/.venv/
+backend/test.db
+backend/*.db
 
 # Environment secrets (keep .env.example)
 .env
