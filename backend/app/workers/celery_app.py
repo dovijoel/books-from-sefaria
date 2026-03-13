@@ -5,6 +5,7 @@ celery_app = Celery(
     "sefaria",
     broker=settings.celery_broker_url,
     backend=settings.celery_result_backend,
+    include=["app.workers.tasks"],
 )
 
 celery_app.conf.update(

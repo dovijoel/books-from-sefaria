@@ -19,13 +19,14 @@ class TestSearchTexts:
         """search_texts constructs correct URL and parses results."""
         mock_response = MagicMock()
         mock_response.status_code = 200
+        # Match Sefaria name-completion API format (uses "matches", "key" fields)
         mock_response.json.return_value = {
-            "results": [
+            "matches": [
                 {
-                    "ref": "Genesis 1",
+                    "key": "Genesis 1",
                     "title": "Genesis",
                     "heTitle": "בראשית",
-                    "type": "Torah",
+                    "type": "ref",
                 }
             ]
         }

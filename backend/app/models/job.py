@@ -20,7 +20,9 @@ class Job(Base):
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
     status: Mapped[JobStatus] = mapped_column(
-        Enum(JobStatus), default=JobStatus.PENDING, index=True
+        Enum(JobStatus, values_callable=lambda objs: [e.value for e in objs]),
+        default=JobStatus.PENDING,
+        index=True,
     )
     config_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     config_snapshot: Mapped[str | None] = mapped_column(Text, nullable=True)

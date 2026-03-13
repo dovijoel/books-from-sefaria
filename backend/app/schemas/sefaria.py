@@ -8,6 +8,13 @@ class NameSearchResult(BaseModel):
     type: str
 
 
+class TextResolveResult(BaseModel):
+    ref: str
+    link: str
+    heTitle: str
+    title: str
+
+
 class TextInfo(BaseModel):
     ref: str
     heTitle: str

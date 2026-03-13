@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import httpx
 from fastapi import APIRouter, HTTPException, Query
-from app.schemas.sefaria import NameSearchResult
+from app.schemas.sefaria import NameSearchResult, TextResolveResult
 from app.services import sefaria as sefaria_svc
 
 router = APIRouter(prefix="/sefaria", tags=["sefaria"])
@@ -27,6 +27,27 @@ async def search_sefaria(q: str = Query(..., min_length=2, description="Text sea
         )
         for item in results
     ]
+
+
+@router.get("/resolve/{ref:path}", response_model=TextResolveResult)
+async def resolve_sefaria_ref(ref: str):
+    """
+    Resolve a canonical Sefaria ref (e.g. 'Esther') and return metadata for job creation.
+    The 'link' field in the response is the value to use for texts[].link in job creation.
+    """
+    try:
+        data = await sefaria_svc.pull_text(ref)
+    except httpx.HTTPStatusError as exc:
+        status = exc.response.status_code if exc.response else 502
+        raise HTTPException(status_code=status, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    return TextResolveResult(
+        ref=ref,
+        link=ref,  # The same ref works for the live API fallback
+        heTitle=data.get("heTitle") or ref,
+        title=data.get("title") or ref,
+    )
 
 
 @router.get("/text/{ref:path}")

@@ -6,6 +6,7 @@ All file I/O uses absolute paths from settings.
 from __future__ import annotations
 
 import csv
+import html as html_lib
 import os
 import subprocess
 import tempfile
@@ -43,7 +44,8 @@ def pullinput(path: str) -> list[str]:
 
 
 def removeformatting(text: str) -> str:
-    """Strip all <tag> HTML markup."""
+    """Strip all <tag> HTML markup and decode HTML entities."""
+    text = html_lib.unescape(text)
     while "<" in text and ">" in text:
         loc1 = text.find("<")
         loc2 = text.find(">", loc1) + 1
@@ -870,15 +872,26 @@ def compile_latex(output_tex: str, settings_dict: dict) -> int:
     except ImportError:
         PdfReader = None  # type: ignore
 
+    # Run xelatex from /app so that relative \usepackage paths (e.g.
+    # resources/unnumberedtotoc) resolve against the mounted resources dir.
+    # Use -output-directory so the PDF lands next to the .tex file.
+    out_dir = os.path.dirname(os.path.abspath(output_tex))
     for _ in range(2):
         result = subprocess.run(
-            ["xelatex", "-interaction=nonstopmode", output_tex],
+            [
+                "xelatex",
+                "-interaction=nonstopmode",
+                f"-output-directory={out_dir}",
+                output_tex,
+            ],
             capture_output=True,
-            cwd=os.path.dirname(os.path.abspath(output_tex)),
+            cwd="/app",
         )
         if result.returncode != 0:
             raise RuntimeError(
-                "xelatex failed:\n" + result.stderr.decode(errors="replace")
+                "xelatex failed:\n"
+                + result.stdout.decode(errors="replace")
+                + result.stderr.decode(errors="replace")
             )
 
     pdf_path = output_tex.replace(".tex", ".pdf")

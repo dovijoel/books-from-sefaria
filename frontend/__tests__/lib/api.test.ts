@@ -1,4 +1,6 @@
 /**
+ * @jest-environment node
+ *
  * Unit tests for the API client  (@/lib/api)
  * TODO: implement when frontend/lib/api.ts is ready.
  *

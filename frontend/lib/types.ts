@@ -77,10 +77,10 @@ export interface BookConfigListItem {
 export const DEFAULT_FORMAT: BookFormatSettings = {
   paperheight: "11in",
   paperwidth: "8.5in",
-  hebfont: "Frank Ruehl CLM",
-  hebboldfont: "Frank Ruehl CLM",
+  hebfont: "Noto Serif Hebrew",
+  hebboldfont: "Noto Serif Hebrew",
   engfont: "Linux Libertine O",
-  commentfont: "Linux Libertine O",
+  commentfont: "Noto Sans Hebrew",
   top: "0.75in",
   bottom: "0.75in",
   inner: "1in",
@@ -117,11 +117,13 @@ export const COMMENTARY_OPTIONS = [
 ];
 
 export const HEBREW_FONTS = [
+  "Noto Serif Hebrew",
+  "Noto Sans Hebrew",
   "Frank Ruehl CLM",
-  "Ezra SIL",
-  "SBL Hebrew",
   "David CLM",
   "Miriam CLM",
+  "Ezra SIL",
+  "SBL Hebrew",
 ];
 
 export const ENGLISH_FONTS = [

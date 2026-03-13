@@ -4,6 +4,8 @@ All HTTP calls use httpx.AsyncClient.
 """
 from __future__ import annotations
 
+import html as html_lib
+import re
 from typing import Any
 
 import httpx
@@ -21,42 +23,145 @@ GITHUB_SCHEMA_BASE = (
 SEFARIA_SEARCH_API = "https://www.sefaria.org/api/search-wrapper/es6?query={query}&type=text&get_filters=0"
 SEFARIA_LINKS_API = "https://www.sefaria.org/api/links/{ref}?with_text=0"
 SEFARIA_INDEX_API = "https://www.sefaria.org/api/index/{ref}"
+SEFARIA_NAME_API = "https://www.sefaria.org/api/name/{query}?limit=20&type=ref"
+SEFARIA_TEXT_API = "https://www.sefaria.org/api/texts/{ref}?context=0&pad=0&commentary=0"
 
 
 # ── Search ────────────────────────────────────────────────────────────────────
 
 async def search_texts(query: str) -> list[dict]:
-    """Search Sefaria for text references matching *query*. Returns [] for empty input."""
+    """
+    Search Sefaria for text references matching *query* using the name-completion API.
+    Returns book-level canonical refs (e.g. 'Esther', not 'Esther 1:1').
+    Returns [] for empty input.
+    """
     if not query or not query.strip():
         return []
-    url = SEFARIA_SEARCH_API.format(query=query.replace(" ", "%20"))
+    encoded = query.replace(" ", "%20")
+    url = SEFARIA_NAME_API.format(query=encoded)
     async with httpx.AsyncClient(timeout=settings.http_timeout) as client:
         resp = await client.get(url)
         resp.raise_for_status()
         data = resp.json()
-    return data.get("results", [])
+    matches: list[dict] = data.get("matches", [])
+    # Keep only top-level text refs (type == "ref" or type == "index"), deduplicated
+    seen: set[str] = set()
+    results: list[dict] = []
+    for m in matches:
+        ref = m.get("key") or m.get("ref") or m.get("title", "")
+        if not ref or ref in seen:
+            continue
+        seen.add(ref)
+        results.append({
+            "ref": ref,
+            "title": m.get("title", ref),
+            "heTitle": m.get("heTitle", ""),
+            "type": m.get("type", "ref"),
+        })
+    # If the name API returns nothing, fall back to the Elasticsearch search
+    if not results:
+        fallback_url = SEFARIA_SEARCH_API.format(query=encoded)
+        async with httpx.AsyncClient(timeout=settings.http_timeout) as client:
+            resp = await client.get(fallback_url)
+            if resp.status_code == 200:
+                raw = resp.json().get("hits", {}).get("hits", [])
+                for hit in raw[:10]:
+                    src = hit.get("_source", {})
+                    ref = src.get("ref", "")
+                    if ref and ref not in seen:
+                        seen.add(ref)
+                        results.append({
+                            "ref": ref,
+                            "title": src.get("title", ref),
+                            "heTitle": src.get("heTitle", ""),
+                            "type": "ref",
+                        })
+    return results
 
 
 # ── Text fetching ─────────────────────────────────────────────────────────────
 
+def _looks_like_github_path(ref: str) -> bool:
+    """
+    Return True if *ref* looks like a Sefaria-Export GitHub path, e.g.:
+        'Tanakh/Writings/Esther/Hebrew/Tanach with Ta'amei Hamikra'
+    Simple refs like 'Esther' or 'Genesis 1' are not GitHub paths.
+    """
+    # A GitHub path always has at least three '/' separators
+    return ref.count("/") >= 3
+
+
+def _strip_html(value: Any) -> Any:
+    """
+    Recursively decode HTML entities and strip HTML tags from text values.
+    Handles nested lists as returned by the Sefaria text API.
+
+    For example: '&nbsp;&nbsp;וְאֵ֥ת&thinsp;' → '  וְאֵ֥ת '
+    """
+    if isinstance(value, str):
+        value = html_lib.unescape(value)          # &nbsp; → \xa0, &thinsp; → \u2009, etc.
+        value = re.sub(r"<[^>]+>", "", value)     # strip remaining <tags>
+        value = value.replace("\xa0", " ")        # non-breaking space → space
+        value = value.replace("\u2009", " ")      # thin space → space
+        value = value.replace("\u200b", "")       # zero-width space → remove
+        return value
+    if isinstance(value, list):
+        return [_strip_html(v) for v in value]
+    return value
+
+
+def _normalize_live_api_response(data: dict) -> dict:
+    """
+    The live Sefaria /api/texts/ response uses 'he' for Hebrew and 'text' for English.
+    Sefaria-Export JSONs use 'text' for the primary (Hebrew) text.
+    Rename 'he' → 'text' so the rest of the pipeline is consistent.
+    Also strips HTML entities and tags which the live API injects into verse text.
+    """
+    if "he" in data:
+        # Move live-API Hebrew content to 'text', keeping English under 'en'
+        data["en"] = _strip_html(data.get("text", []))
+        data["text"] = _strip_html(data.pop("he"))
+    return data
+
+
 async def pull_text(ref: str) -> dict[str, Any]:
-    """Fetch a Sefaria text JSON by ref (spaces → %20). Async version for FastAPI routes."""
+    """
+    Fetch a Sefaria text JSON by ref.
+    - If *ref* is a full GitHub path (≥3 slashes), tries Sefaria-Export GitHub first.
+    - Otherwise (or on 404), falls back to the live Sefaria /api/texts/ endpoint.
+    """
     path = ref.replace(" ", "%20")
-    url = GITHUB_TEXT_BASE.format(path=path)
     async with httpx.AsyncClient(timeout=settings.http_timeout) as client:
-        resp = await client.get(url)
+        if _looks_like_github_path(ref):
+            url = GITHUB_TEXT_BASE.format(path=path)
+            resp = await client.get(url)
+            if resp.status_code == 200:
+                return resp.json()
+        # Fall back to live Sefaria API
+        live_url = SEFARIA_TEXT_API.format(ref=path)
+        resp = await client.get(live_url)
         resp.raise_for_status()
-        return resp.json()
+        return _normalize_live_api_response(resp.json())
 
 
 def pull_text_sync(ref: str) -> dict[str, Any]:
-    """Synchronous version of pull_text for use in Celery tasks."""
+    """
+    Synchronous version of pull_text for use in Celery tasks.
+    - If *ref* is a full GitHub path (≥3 slashes), tries Sefaria-Export GitHub first.
+    - Otherwise (or on 404), falls back to the live Sefaria /api/texts/ endpoint.
+    """
     path = ref.replace(" ", "%20")
-    url = GITHUB_TEXT_BASE.format(path=path)
     with httpx.Client(timeout=settings.http_timeout) as client:
-        resp = client.get(url)
+        if _looks_like_github_path(ref):
+            url = GITHUB_TEXT_BASE.format(path=path)
+            resp = client.get(url)
+            if resp.status_code == 200:
+                return resp.json()
+        # Fall back to live Sefaria API
+        live_url = SEFARIA_TEXT_API.format(ref=path)
+        resp = client.get(live_url)
         resp.raise_for_status()
-        return resp.json()
+        return _normalize_live_api_response(resp.json())
 
 
 async def get_text_details(ref: str) -> dict[str, Any]:

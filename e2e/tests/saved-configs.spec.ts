@@ -1,22 +1,22 @@
 import { test, expect, Page } from '@playwright/test';
 
-/**
- * E2E tests for the Saved Configurations page (/configs).
- * All API calls are intercepted with page.route() so no real backend is needed.
- *
- * TODO: Update selectors once the actual UI is built.
- */
-
 // ---------------------------------------------------------------------------
 // Fixtures
 // ---------------------------------------------------------------------------
+const API = 'http://localhost:8000';
+
 const sampleConfig = {
   id: 'cfg-abc',
   name: 'My Genesis Book',
-  config: {
-    texts: [{ link: 'Genesis 1', commentary: [], translation: 'English', range: '1:1' }],
-    format: { paperheight: '9in', paperwidth: '6in' },
-  },
+  description: 'A custom Genesis book',
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+};
+
+const sampleConfig2 = {
+  id: 'cfg-xyz',
+  name: 'Psalms Collection',
+  description: '',
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
 };
@@ -25,7 +25,7 @@ const sampleConfig = {
 // Route helpers
 // ---------------------------------------------------------------------------
 async function mockListConfigs(page: Page, configs = [sampleConfig]) {
-  await page.route('**/api/v1/configs', (route) => {
+  await page.route(`${API}/api/v1/configs`, (route) => {
     if (route.request().method() === 'GET') {
       route.fulfill({ json: configs });
     } else {
@@ -34,14 +34,8 @@ async function mockListConfigs(page: Page, configs = [sampleConfig]) {
   });
 }
 
-async function mockGetConfig(page: Page, config = sampleConfig) {
-  await page.route(`**/api/v1/configs/${config.id}`, (route) =>
-    route.fulfill({ json: config }),
-  );
-}
-
 async function mockDeleteConfig(page: Page, id = sampleConfig.id) {
-  await page.route(`**/api/v1/configs/${id}`, (route) => {
+  await page.route(`${API}/api/v1/configs/${id}`, (route) => {
     if (route.request().method() === 'DELETE') {
       route.fulfill({ status: 204, body: '' });
     } else {
@@ -50,102 +44,139 @@ async function mockDeleteConfig(page: Page, id = sampleConfig.id) {
   });
 }
 
-async function mockCreateConfig(page: Page, config = sampleConfig) {
-  await page.route('**/api/v1/configs', (route) => {
-    if (route.request().method() === 'POST') {
-      route.fulfill({ status: 201, json: config });
-    } else {
-      route.continue();
-    }
-  });
-}
-
 // ---------------------------------------------------------------------------
-// Tests
+// Page structure
 // ---------------------------------------------------------------------------
-test.describe('Saved configs list', () => {
-  test('shows saved configs on /configs page', async ({ page }) => {
+test.describe('/configs page structure', () => {
+  test.beforeEach(async ({ page }) => {
     await mockListConfigs(page);
     await page.goto('/configs');
-
-    // TODO: update selector once real UI exists
-    // await expect(page.getByText('My Genesis Book')).toBeVisible();
-    expect(true).toBe(true); // placeholder
   });
 
-  test('shows empty state when no configs exist', async ({ page }) => {
-    await mockListConfigs(page, []);
-    await page.goto('/configs');
-
-    // TODO: update selector once real UI exists
-    // await expect(page.getByText(/no saved configurations/i)).toBeVisible();
-    expect(true).toBe(true); // placeholder
+  test('shows "Saved Configurations" heading', async ({ page }) => {
+    await expect(page.getByRole('heading', { name: /saved configurations/i })).toBeVisible();
   });
 
-  test('shows creation date for each config', async ({ page }) => {
-    await mockListConfigs(page);
-    await page.goto('/configs');
+  test('shows "New Book" button', async ({ page }) => {
+    await expect(page.getByRole('button', { name: /new book/i })).toBeVisible();
+  });
 
-    // TODO: update selector once real UI exists
-    // const row = page.getByTestId(`config-row-${sampleConfig.id}`);
-    // await expect(row).toBeVisible();
-    expect(true).toBe(true); // placeholder
+  test('"New Book" button navigates to /builder', async ({ page }) => {
+    await page.getByRole('button', { name: /new book/i }).click();
+    await expect(page).toHaveURL(/\/builder/);
   });
 });
 
 // ---------------------------------------------------------------------------
-test.describe('Create saved config', () => {
-  test('opens create form and saves new config', async ({ page }) => {
+// Empty state
+// ---------------------------------------------------------------------------
+test.describe('Empty state', () => {
+  test('shows empty state message when no configs', async ({ page }) => {
     await mockListConfigs(page, []);
-    await mockCreateConfig(page);
     await page.goto('/configs');
+    await expect(page.getByText(/no saved configurations/i)).toBeVisible();
+  });
 
-    // TODO: update selectors once real UI exists:
-    // await page.getByRole('button', { name: /new config/i }).click();
-    // await page.getByLabel(/name/i).fill('My New Config');
-    // await page.getByRole('button', { name: /save/i }).click();
-    // await expect(page.getByText('My New Config')).toBeVisible();
-    expect(true).toBe(true); // placeholder
+  test('empty state "Open Builder" button navigates to /builder', async ({ page }) => {
+    await mockListConfigs(page, []);
+    await page.goto('/configs');
+    await page.getByRole('button', { name: /open builder/i }).click();
+    await expect(page).toHaveURL(/\/builder/);
   });
 });
 
 // ---------------------------------------------------------------------------
-test.describe('Delete saved config', () => {
-  test('removes config from list after delete', async ({ page }) => {
-    await mockListConfigs(page);
+// Config cards
+// ---------------------------------------------------------------------------
+test.describe('Config cards', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockListConfigs(page, [sampleConfig, sampleConfig2]);
+    await page.goto('/configs');
+  });
+
+  test('shows card for each config', async ({ page }) => {
+    await expect(page.getByText('My Genesis Book')).toBeVisible();
+    await expect(page.getByText('Psalms Collection')).toBeVisible();
+  });
+
+  test('each card has a Load button', async ({ page }) => {
+    const loadButtons = page.getByRole('button', { name: /load/i });
+    await expect(loadButtons).toHaveCount(2);
+  });
+
+  test('each card has a delete (trash) button', async ({ page }) => {
+    // Trash buttons don't have a text label, but they exist alongside Load buttons
+    await expect(page.getByRole('button', { name: /load/i }).first()).toBeVisible();
+    // There should be at least 2 delete icon buttons
+    const allButtons = await page.getByRole('button').all();
+    expect(allButtons.length).toBeGreaterThanOrEqual(4); // 2 Load + 2 delete + 1 New Book
+  });
+
+  test('"Load" button navigates to /builder', async ({ page }) => {
+    await page.getByRole('button', { name: /load/i }).first().click();
+    await expect(page).toHaveURL(/\/builder/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Delete confirmation dialog
+// ---------------------------------------------------------------------------
+test.describe('Delete config', () => {
+  test('clicking trash opens confirmation dialog', async ({ page }) => {
+    await mockListConfigs(page, [sampleConfig]);
     await mockDeleteConfig(page);
     await page.goto('/configs');
 
-    // TODO: update selectors once real UI exists:
-    // await page.getByTestId(`delete-config-${sampleConfig.id}`).click();
-    // await page.getByRole('button', { name: /confirm/i }).click(); // confirmation dialog
-    // await expect(page.getByText('My Genesis Book')).not.toBeVisible();
-    expect(true).toBe(true); // placeholder
+    // The trash button doesn't have accessible name text; find it via its position
+    // — it's the last button in the card footer
+    const card = page.locator('.flex.gap-2.pt-3.border-t');
+    const trashButton = card.getByRole('button').nth(1); // 0=Load, 1=trash
+    await trashButton.click();
+
+    // Dialog should appear
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(page.getByRole('heading', { name: /delete configuration/i })).toBeVisible();
   });
 
-  test('shows confirmation dialog before deleting', async ({ page }) => {
-    await mockListConfigs(page);
+  test('dialog contains config name', async ({ page }) => {
+    await mockListConfigs(page, [sampleConfig]);
+    await mockDeleteConfig(page);
     await page.goto('/configs');
 
-    // TODO: update selectors once real UI exists:
-    // await page.getByTestId(`delete-config-${sampleConfig.id}`).click();
-    // await expect(page.getByRole('dialog')).toBeVisible();
-    expect(true).toBe(true); // placeholder
+    const card = page.locator('.flex.gap-2.pt-3.border-t');
+    await card.getByRole('button').nth(1).click();
+    await expect(page.getByRole('dialog')).toContainText('My Genesis Book');
   });
-});
 
-// ---------------------------------------------------------------------------
-test.describe('Load config into builder', () => {
-  test('navigates to builder with config pre-filled', async ({ page }) => {
-    await mockListConfigs(page);
-    await mockGetConfig(page);
+  test('Cancel button closes dialog', async ({ page }) => {
+    await mockListConfigs(page, [sampleConfig]);
     await page.goto('/configs');
 
-    // TODO: update selectors once real UI exists:
-    // await page.getByTestId(`load-config-${sampleConfig.id}`).click();
-    // await expect(page).toHaveURL('/');
-    // const settingsForm = page.getByTestId('book-settings-form');
-    // await expect(settingsForm).toBeVisible();
-    expect(true).toBe(true); // placeholder
+    const card = page.locator('.flex.gap-2.pt-3.border-t');
+    await card.getByRole('button').nth(1).click();
+    await page.getByRole('button', { name: /cancel/i }).click();
+    await expect(page.getByRole('dialog')).not.toBeVisible();
+  });
+
+  test('Delete button in dialog calls DELETE and reloads list', async ({ page }) => {
+    // After deletion, mock empty list to confirm re-fetch
+    let callCount = 0;
+    await page.route(`${API}/api/v1/configs`, (route) => {
+      if (route.request().method() === 'GET') {
+        callCount++;
+        route.fulfill({ json: callCount === 1 ? [sampleConfig] : [] });
+      } else {
+        route.continue();
+      }
+    });
+    await mockDeleteConfig(page);
+    await page.goto('/configs');
+
+    const card = page.locator('.flex.gap-2.pt-3.border-t');
+    await card.getByRole('button').nth(1).click();
+    await page.getByRole('button', { name: /^delete$/i }).click();
+
+    // List should reload and show empty state
+    await expect(page.getByText(/no saved configurations/i)).toBeVisible({ timeout: 5000 });
   });
 });
