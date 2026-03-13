@@ -59,6 +59,7 @@ services:
     ports:
       - "8000:8000"
     environment:
+      PYTHONPATH: /app
       DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: ${REDIS_URL}
       CELERY_BROKER_URL: ${CELERY_BROKER_URL}
@@ -96,6 +97,7 @@ services:
     restart: unless-stopped
     command: celery -A app.workers.celery_app worker --loglevel=${LOG_LEVEL} --concurrency=2
     environment:
+      PYTHONPATH: /app
       DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: ${REDIS_URL}
       CELERY_BROKER_URL: ${CELERY_BROKER_URL}
@@ -129,7 +131,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NEXT_PUBLIC_API_URL: http://backend:8000
       NODE_ENV: development
     volumes:
       - ./frontend:/app

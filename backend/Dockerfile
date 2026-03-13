@@ -8,7 +8,8 @@ FROM python:3.11-slim AS base
 # Prevent interactive prompts during package installs
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app
 
 # ── System dependencies + LaTeX toolchain ────
 # texlive-full is large (~4 GB); install with no-recommends and clean cache
@@ -38,3 +39,4 @@ COPY backend/ .
 #   /app/resources  ← ./resources
 
 EXPOSE 8000
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

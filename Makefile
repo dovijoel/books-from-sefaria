@@ -4,7 +4,7 @@
 .DEFAULT_GOAL := help
 COMPOSE = docker compose
 
-.PHONY: help dev build down logs \
+.PHONY: help up dev build down logs \
         test-backend test-frontend test-e2e \
         migrate shell-backend
 
@@ -13,6 +13,9 @@ help:          ## Show this help
 	  awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 # ── Stack lifecycle ──────────────────────────────────────────
+up:            ## Build images and start all services in detached mode
+	$(COMPOSE) up --build -d
+
 dev:           ## Start full stack in development mode (hot reload)
 	@cp -n .env.example .env 2>/dev/null || true
 	$(COMPOSE) up --build
