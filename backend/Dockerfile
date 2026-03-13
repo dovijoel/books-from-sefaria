@@ -1,0 +1,40 @@
+# ──────────────────────────────────────────────
+# Sefaria Book Creator — Backend Dockerfile
+# Base: python:3.11-slim
+# Includes: texlive-full for LaTeX PDF generation
+# ──────────────────────────────────────────────
+FROM python:3.11-slim AS base
+
+# Prevent interactive prompts during package installs
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+# ── System dependencies + LaTeX toolchain ────
+# texlive-full is large (~4 GB); install with no-recommends and clean cache
+# immediately to keep layers as small as possible.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        curl \
+        latexmk \
+        texlive-full \
+        texlive-xetex \
+        texlive-fonts-extra \
+        texlive-latex-extra \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+WORKDIR /app
+
+# ── Python dependencies ───────────────────────
+COPY backend/requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# ── Application code ──────────────────────────
+COPY backend/ .
+
+# links/ and resources/ are bind-mounted at runtime:
+#   /app/links      ← ./links
+#   /app/resources  ← ./resources
+
+EXPOSE 8000

@@ -7,3 +7,25 @@
 *.toc
 *blx.bib
 *.out
+# ── Sefaria Book Creator additions ──────────────────────────
+# PDF build artefacts
+*.pdf
+
+# Next.js
+frontend/.next/
+frontend/node_modules/
+frontend/out/
+
+# Python / backend
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.pyc
+backend/**/*.pyc
+backend/.pytest_cache/
+backend/.venv/
+
+# Environment secrets (keep .env.example)
+.env
+
+# Docker / data volumes
+postgres_data/
