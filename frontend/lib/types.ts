@@ -66,6 +66,14 @@ export interface SefariaTextSearchResult {
   type: string;
 }
 
+export interface BookConfigListItem {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export const DEFAULT_FORMAT: BookFormatSettings = {
   paperheight: "11in",
   paperwidth: "8.5in",

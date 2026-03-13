@@ -1,5 +1,4 @@
-"use client";
-
+﻿"use client";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -13,7 +12,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
@@ -24,7 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { api } from "@/lib/api";
-import { BookConfig } from "@/lib/types";
+import { BookConfigListItem } from "@/lib/types";
 import { useState } from "react";
 
 export default function ConfigsPage() {
@@ -32,7 +30,7 @@ export default function ConfigsPage() {
   const queryClient = useQueryClient();
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const { data: configs, isLoading, isError } = useQuery<BookConfig[]>({
+  const { data: configs, isLoading, isError } = useQuery<BookConfigListItem[]>({
     queryKey: ["configs"],
     queryFn: api.getConfigs,
   });
@@ -49,8 +47,7 @@ export default function ConfigsPage() {
     },
   });
 
-  const loadIntoBuilder = (config: BookConfig) => {
-    // Store in sessionStorage so builder page can read it
+  const loadIntoBuilder = (config: BookConfigListItem) => {
     sessionStorage.setItem("builderConfig", JSON.stringify(config));
     toast.success("Configuration loaded into builder");
     router.push("/builder");
@@ -128,16 +125,9 @@ export default function ConfigsPage() {
           {configs.map((config) => (
             <Card key={config.id} className="flex flex-col hover:shadow-md transition-shadow">
               <CardHeader className="pb-3">
-                <div className="flex items-start justify-between gap-2">
-                  <CardTitle className="text-base leading-snug">
-                    {config.name ?? "Untitled"}
-                  </CardTitle>
-                  <div
-                    className="w-5 h-5 rounded-full border border-black/10 flex-shrink-0 mt-0.5"
-                    style={{ background: config.format?.covercolor ?? "#004E78" }}
-                    title="Cover colour"
-                  />
-                </div>
+                <CardTitle className="text-base leading-snug">
+                  {config.name ?? "Untitled"}
+                </CardTitle>
                 {config.createdAt && (
                   <CardDescription className="flex items-center gap-1 text-[11px]">
                     <Clock className="h-3 w-3" />
@@ -146,25 +136,9 @@ export default function ConfigsPage() {
                 )}
               </CardHeader>
 
-              <CardContent className="text-sm text-muted-foreground flex-1 space-y-1.5">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <Badge variant="secondary" className="text-[10px]">
-                    {config.texts?.length ?? 0} text{(config.texts?.length ?? 0) !== 1 ? "s" : ""}
-                  </Badge>
-                  {config.format?.layout === "twocol" && (
-                    <Badge variant="outline" className="text-[10px]">2 columns</Badge>
-                  )}
-                  {config.format?.covertype && (
-                    <Badge variant="outline" className="text-[10px] capitalize">
-                      {config.format.covertype}
-                    </Badge>
-                  )}
-                </div>
-                {config.texts && config.texts.length > 0 && (
-                  <p className="text-xs truncate">
-                    {config.texts.slice(0, 3).map((t) => t.link).join(", ")}
-                    {config.texts.length > 3 && ` +${config.texts.length - 3} more`}
-                  </p>
+              <CardContent className="text-sm text-muted-foreground flex-1">
+                {config.description && (
+                  <p className="text-xs line-clamp-2">{config.description}</p>
                 )}
               </CardContent>
 
@@ -180,7 +154,7 @@ export default function ConfigsPage() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => setDeletingId(config.id ?? null)}
+                  onClick={() => setDeletingId(config.id)}
                   className="text-destructive hover:bg-destructive/10 border-destructive/30"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -205,7 +179,7 @@ export default function ConfigsPage() {
                       <Button
                         variant="destructive"
                         disabled={deleteMutation.isPending}
-                        onClick={() => config.id && deleteMutation.mutate(config.id)}
+                        onClick={() => deleteMutation.mutate(config.id)}
                       >
                         {deleteMutation.isPending ? (
                           <Loader2 className="h-4 w-4 animate-spin" />

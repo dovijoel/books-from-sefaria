@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -68,7 +68,7 @@ export default function BuilderPage() {
   const createJobMutation = useMutation({
     mutationFn: (config: BookConfig) => api.createJob(config),
     onSuccess: (data) => {
-      const jobId = (data as { job_id?: string; id?: string }).job_id ?? (data as { id?: string }).id;
+      const jobId = data.id;
       toast.success("Book generation started!");
       router.push(`/jobs/${jobId}`);
     },
