@@ -91,10 +91,10 @@ export interface CommentaryOption {
 export const DEFAULT_FORMAT: BookFormatSettings = {
   paperheight: "11in",
   paperwidth: "8.5in",
-  hebfont: "Noto Serif Hebrew",
-  hebboldfont: "Noto Serif Hebrew",
+  hebfont: "Frank Ruehl CLM",
+  hebboldfont: "Frank Ruehl CLM",
   engfont: "Linux Libertine O",
-  commentfont: "Noto Sans Hebrew",
+  commentfont: "David CLM",
   top: "0.75in",
   bottom: "0.75in",
   inner: "1in",
@@ -131,21 +131,21 @@ export const COMMENTARY_OPTIONS = [
 ];
 
 export const HEBREW_FONTS = [
-  "Noto Serif Hebrew",
-  "Noto Sans Hebrew",
   "Frank Ruehl CLM",
   "David CLM",
   "Miriam CLM",
+  "Nachlieli CLM",
   "Ezra SIL",
-  "SBL Hebrew",
+  "Noto Serif Hebrew",
+  "Noto Sans Hebrew",
 ];
 
 export const ENGLISH_FONTS = [
   "Linux Libertine O",
   "TeX Gyre Termes",
-  "Palatino",
-  "Times New Roman",
-  "Georgia",
+  "TeX Gyre Pagella",
+  "TeX Gyre Schola",
+  "TeX Gyre Bonum",
 ];
 
 export const TEXT_CATEGORIES = [

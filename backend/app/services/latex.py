@@ -642,18 +642,18 @@ def set_format(template_lines: list[str], settings_dict: dict) -> list[str]:
             font = settings_dict.get("hebfont", "")
             bold = settings_dict.get("hebboldfont", "")
             if bold:
-                cmd = r"\setmainfont[BoldFont=" + bold + r"]{" + font + r"}"
+                cmd = (r"\setmainfont[Script=Hebrew,BoldFont=" + bold + r"]{" + font + r"}")
             else:
-                cmd = r"\setmainfont{" + font + r"}"
+                cmd = r"\setmainfont[Script=Hebrew]{" + font + r"}"
             output.append(cmd + "\n")
 
         elif key == "%setcommentfont":
             cf = settings_dict.get("commentfont") or settings_dict.get("hebfont", "")
-            output.append(r"\setsansfont{" + cf + r"}" + "\n")
+            output.append(r"\setsansfont[Script=Hebrew]{" + cf + r"}" + "\n")
 
         elif key == "%setengfont":
             ef = settings_dict.get("engfont", "")
-            output.append(r"\newfontfamily\englishfont{" + ef + r"}" + "\n")
+            output.append(r"\newfontfamily\englishfont[Script=Latin]{" + ef + r"}" + "\n")
 
         elif key == "%setparskip":
             output.append(
@@ -835,9 +835,9 @@ def make_cover(
                 if settings_dict.get("backtext"):
                     f.write(settings_dict["backtext"])
             elif "%sethebfont" in key:
-                f.write(r"\setmainfont{" + settings_dict.get("hebfont", "") + r"}")
+                f.write(r"\setmainfont[Script=Hebrew]{" + settings_dict.get("hebfont", "") + r"}")
             elif "%setengfont" in key:
-                f.write(r"\newfontfamily\englishfont{" + settings_dict.get("engfont", "") + r"}")
+                f.write(r"\newfontfamily\englishfont[Script=Latin]{" + settings_dict.get("engfont", "") + r"}")
             else:
                 f.write(line if line.endswith("\n") else line + "\n")
 

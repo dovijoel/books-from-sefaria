@@ -22,8 +22,21 @@ RUN apt-get update && \
         texlive-xetex \
         texlive-fonts-extra \
         texlive-latex-extra \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+        culmus \
+        fonts-sil-ezra \
+        fonts-noto-core \
+    && \
+    # Make TeX-distributed fonts visible to fontconfig / XeLaTeX
+    mkdir -p /etc/fonts/conf.d && \
+    echo '<?xml version="1.0"?>' > /etc/fonts/conf.d/09-texlive-fonts.conf && \
+    echo '<!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">' >> /etc/fonts/conf.d/09-texlive-fonts.conf && \
+    echo '<fontconfig>' >> /etc/fonts/conf.d/09-texlive-fonts.conf && \
+    echo '  <dir>/usr/share/texlive/texmf-dist/fonts/opentype</dir>' >> /etc/fonts/conf.d/09-texlive-fonts.conf && \
+    echo '  <dir>/usr/share/texlive/texmf-dist/fonts/truetype</dir>' >> /etc/fonts/conf.d/09-texlive-fonts.conf && \
+    echo '</fontconfig>' >> /etc/fonts/conf.d/09-texlive-fonts.conf && \
+    fc-cache -fv && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 WORKDIR /app
 

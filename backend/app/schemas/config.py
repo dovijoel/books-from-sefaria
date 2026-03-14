@@ -39,10 +39,10 @@ class BookConfigCreate(BaseModel):
     bottom: str = "0.75in"
     inner: str = "0.75in"
     outer: str = "0.75in"
-    hebfont: str = "Noto Serif Hebrew"
+    hebfont: str = "Frank Ruehl CLM"
     hebboldfont: str = ""
     engfont: str = "Linux Libertine O"
-    commentfont: str = "Noto Sans Hebrew"
+    commentfont: str = "David CLM"
     fontsize: float = 12.0
     spacing: float = 1.5
     engfontsize: float = 10.0

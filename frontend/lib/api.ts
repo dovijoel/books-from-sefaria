@@ -68,10 +68,10 @@ function fromBackendConfig(data: Record<string, unknown>): BookConfig {
     format: {
       paperheight: (data.paperheight as string) ?? "9in",
       paperwidth: (data.paperwidth as string) ?? "6in",
-      hebfont: (data.hebfont as string) ?? "David CLM",
+      hebfont: (data.hebfont as string) ?? "Frank Ruehl CLM",
       hebboldfont: (data.hebboldfont as string) ?? "",
       engfont: (data.engfont as string) ?? "Linux Libertine O",
-      commentfont: (data.commentfont as string) ?? "",
+      commentfont: (data.commentfont as string) ?? "David CLM",
       top: (data.top as string) ?? "0.75in",
       bottom: (data.bottom as string) ?? "0.75in",
       inner: (data.inner as string) ?? "0.75in",
