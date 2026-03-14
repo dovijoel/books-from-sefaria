@@ -43,7 +43,8 @@ async def search_texts(query: str) -> list[dict]:
         resp = await client.get(url)
         resp.raise_for_status()
         data = resp.json()
-    matches: list[dict] = data.get("matches", [])
+    # Sefaria API v2+ returns "completion_objects"; older versions used "matches"
+    matches: list[dict] = data.get("completion_objects", data.get("matches", []))
     # Keep only top-level text refs (type == "ref" or type == "index"), deduplicated
     seen: set[str] = set()
     results: list[dict] = []
