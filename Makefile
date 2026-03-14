@@ -6,7 +6,8 @@ COMPOSE = docker compose
 
 .PHONY: help up dev build down logs \
         test-backend test-frontend test-e2e \
-        migrate shell-backend
+        migrate shell-backend \
+        prod-up prod-down prod-logs prod-status prod-restart
 
 help:          ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -46,3 +47,21 @@ migrate:       ## Apply Alembic database migrations
 # ── Shells ────────────────────────────────────────────────────
 shell-backend: ## Open an interactive shell in the backend container
 	$(COMPOSE) exec backend /bin/bash
+
+# ── Production ────────────────────────────────────────────────
+PROD_COMPOSE = docker compose -f docker-compose.prod.yml --env-file .env.production
+
+prod-up:       ## Build and start production stack
+	$(PROD_COMPOSE) up --build -d
+
+prod-down:     ## Stop and remove production containers
+	$(PROD_COMPOSE) down
+
+prod-logs:     ## Tail production logs
+	$(PROD_COMPOSE) logs -f
+
+prod-status:   ## Show running production containers
+	$(PROD_COMPOSE) ps
+
+prod-restart:  ## Restart production without rebuilding
+	$(PROD_COMPOSE) restart

@@ -86,35 +86,115 @@ git-ignored — never commit it.
 
 ---
 
-## Production Deployment
+## Production Deployment (Oracle Cloud Free Tier)
 
-Update `.env` with production values:
+The production stack uses a separate `docker-compose.prod.yml` with:
+- **Nginx** reverse proxy (TLS termination, rate limiting)
+- **Production-optimized** frontend (standalone Next.js build)
+- **No hot-reload** on backend
+- **Resource limits** tuned for Oracle Free Tier (ARM Ampere A1)
+
+### Step 1: Provision the Server
+
+1. Create an Oracle Cloud Always Free ARM instance:
+   - Shape: `VM.Standard.A1.Flex` (up to 4 OCPUs, 24 GB RAM)
+   - OS: Ubuntu 22.04 (recommended) or Oracle Linux 8
+   - Boot volume: 47 GB (default)
+2. Open **ports 80 and 443** in your VCN Security List:
+   - Networking → Virtual Cloud Networks → your-vcn → Security Lists
+   - Add Ingress Rules: `0.0.0.0/0`, TCP, ports 80 and 443
+
+### Step 2: Set Up the Server
 
 ```bash
-DATABASE_URL=postgresql://user:password@your-db-host:5432/sefaria
-REDIS_URL=redis://your-redis-host:6379/0
-CELERY_BROKER_URL=redis://your-redis-host:6379/0
-CELERY_RESULT_BACKEND=redis://your-redis-host:6379/1
-SECRET_KEY=<long-random-hex>
-ENVIRONMENT=production
-NEXT_PUBLIC_API_URL=https://your-domain.com
+# SSH into your instance
+ssh ubuntu@YOUR_PUBLIC_IP
+
+# Clone the repo
+git clone https://github.com/dovijoel/books-from-sefaria.git
+cd books-from-sefaria
+
+# Run server setup (installs Docker, swap, firewall)
+chmod +x deploy/setup-server.sh
+sudo ./deploy/setup-server.sh
+
+# Log out and back in (for docker group)
+exit
+ssh ubuntu@YOUR_PUBLIC_IP
+cd books-from-sefaria
 ```
 
-Additional production considerations:
+### Step 3: Configure Environment
 
-- Run behind an **Nginx reverse proxy** for TLS termination.
-- Use **Let's Encrypt / Certbot** for SSL certificates.
-- Use a managed **PostgreSQL** service (e.g., RDS, Cloud SQL) for durability.
-- Use a managed **Redis** service (e.g., ElastiCache, Upstash) for HA.
-- Push built images to a **container registry** (Docker Hub, GHCR, ECR) so
-  workers can pull without rebuilding.
-- Set `output: "standalone"` in `next.config.js` and use the `runner` stage of
-  the frontend Dockerfile for the production image.
+```bash
+cp .env.production.example .env.production
+```
+
+Edit `.env.production` with real values:
+
+```bash
+SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_hex(32))")
+POSTGRES_PASSWORD=$(python3 -c "import secrets; print(secrets.token_hex(16))")
+
+# Set these in .env.production:
+# SECRET_KEY=<generated above>
+# POSTGRES_PASSWORD=<generated above>
+# DATABASE_URL=postgresql+asyncpg://sefaria:<password>@db:5432/sefaria_books
+# NEXT_PUBLIC_API_URL=http://YOUR_PUBLIC_IP  (or https://your-domain.com)
+```
+
+### Step 4: Deploy
+
+```bash
+chmod +x deploy/deploy.sh
+./deploy/deploy.sh
+```
+
+> **First build takes 20–40 minutes** (texlive-full is ~4 GB).
+> Subsequent builds use cached layers and are much faster.
+
+### Step 5: SSL (Optional — requires a domain)
+
+```bash
+chmod +x deploy/init-letsencrypt.sh
+sudo ./deploy/init-letsencrypt.sh your-domain.com your@email.com
+# Then follow the instructions to enable HTTPS in nginx.conf
+```
+
+### Updating
+
+```bash
+cd books-from-sefaria
+./deploy/deploy.sh --pull    # Pulls latest code, rebuilds, restarts
+```
+
+---
+
+## Architecture (Production)
+
+```
+                    ┌──────────┐
+    Internet ──────▶│  Nginx   │:80/:443
+                    └────┬─────┘
+                    ┌────┴─────┐
+              ┌─────┤ frontend │:3000  (Next.js standalone)
+              │     └──────────┘
+              │     ┌──────────┐
+              └─────┤ backend  │:8000  (FastAPI, 2 workers)
+                    └────┬─────┘
+                    ┌────┴─────┐
+              ┌─────┤  worker  │       (Celery, texlive)
+              │     └──────────┘
+         ┌────┴────┐  ┌───────┐
+         │ postgres │  │ redis │
+         └─────────┘  └───────┘
+```
 
 ---
 
 ## Useful Commands
 
+### Development
 ```bash
 make up              # Build images and start all services (detached)
 make down            # Stop and remove all containers
@@ -124,4 +204,13 @@ make test-backend    # Run backend pytest suite inside the container
 make test-frontend   # Run Next.js / Jest tests inside the container
 make shell-backend   # Open an interactive shell in the backend container
 make build           # Rebuild all Docker images without starting
+```
+
+### Production
+```bash
+make prod-up         # Build and start production stack
+make prod-down       # Stop production stack
+make prod-logs       # Tail production logs
+make prod-status     # Show running production containers
+make prod-restart    # Restart without rebuilding
 ```
