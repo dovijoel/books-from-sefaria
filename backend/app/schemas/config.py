@@ -21,6 +21,8 @@ class TextEntry(BaseModel):
     link: str = Field(..., description="Sefaria text path, e.g. 'Mishnah_Avot'")
     commentary: list[str] = Field(default_factory=list)
     translation: str = ""
+    translation_language: Optional[str] = None
+    version_title: Optional[str] = None
     range: str = "all"
     dafrange: Optional[str] = None
     format: TextFormatOverride = Field(default_factory=TextFormatOverride)

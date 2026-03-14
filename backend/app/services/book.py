@@ -36,18 +36,19 @@ def build_book(config: dict, job_id: str) -> tuple[str, int]:
         # (which _normalize_live_api_response maps to "text"), so either way "text"
         # holds Hebrew after normalisation.  Keep "he" as a secondary fallback for
         # any responses that bypass normalisation.
-        he_data = sefaria_svc.pull_text_sync(
+        he_data = sefaria_svc.pull_text_complete_sync(
             entry["link"],
             version_title=entry.get("version_title"),
-            language=entry.get("language"),
+            language=entry.get("translation_language") or entry.get("language"),
         )
         he_verses: list = he_data.get("text") or he_data.get("he") or []
         he_title: str = he_data.get("heTitle") or entry["link"]
 
-        # English translation always comes from a separate file.
-        en_verses: list = []
+        # English translation: use the 'en' field from the combined fetch if available,
+        # otherwise try the separate translation path.
+        en_verses: list = he_data.get("en") or []
         translation_path: str = entry.get("translation") or ""
-        if translation_path:
+        if not en_verses and translation_path:
             en_data = sefaria_svc.pull_text_sync(translation_path)
             en_verses = en_data.get("text") or []
 

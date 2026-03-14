@@ -195,6 +195,94 @@ async def get_text_details(ref: str) -> dict[str, Any]:
         return resp.json()
 
 
+def _collect_leaf_refs(title: str, schema: dict) -> list[str]:
+    """
+    Recursively collect leaf-level section refs from a Sefaria index schema.
+    For complex texts (SchemaNode), walks through child nodes building refs.
+    For simple texts (JaggedArrayNode at the root), returns just the title.
+    """
+    node_type = schema.get("nodeType", "")
+    nodes = schema.get("nodes")
+
+    if node_type == "SchemaNode" and nodes:
+        refs: list[str] = []
+        for child in nodes:
+            child_title = child.get("title", "")
+            child_ref = f"{title}, {child_title}" if child_title else title
+            child_type = child.get("nodeType", "")
+            if child_type == "SchemaNode" and child.get("nodes"):
+                refs.extend(_collect_leaf_refs(child_ref, child))
+            else:
+                # JaggedArrayNode or leaf — this is a fetchable section
+                refs.append(child_ref)
+        return refs
+    # Not complex — the ref itself is fetchable
+    return [title]
+
+
+def get_index_sync(ref: str) -> dict:
+    """Synchronous fetch of the Sefaria index for a text."""
+    encoded = ref.replace(" ", "%20")
+    url = SEFARIA_INDEX_API.format(ref=encoded)
+    with httpx.Client(timeout=settings.http_timeout) as client:
+        resp = client.get(url)
+        resp.raise_for_status()
+        return resp.json()
+
+
+def pull_text_complete_sync(
+    ref: str,
+    version_title: str | None = None,
+    language: str | None = None,
+) -> dict[str, Any]:
+    """
+    Fetch text for a ref, automatically handling complex texts (e.g. Pesach Haggadah).
+
+    For complex texts with multiple sections, fetches the index to discover all
+    leaf sections, fetches each one, and concatenates all verses into a single
+    response dict with combined "text" (Hebrew) and "en" (English) lists.
+
+    Returns the same shape as pull_text_sync: dict with "text", "en", "heTitle", etc.
+    """
+    # First try a direct fetch; if it works, return immediately
+    try:
+        return pull_text_sync(ref, version_title=version_title, language=language)
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code != 400:
+            raise
+        # 400 usually means complex text — fall through to section-by-section fetch
+
+    # Fetch the index to discover the text structure
+    index = get_index_sync(ref)
+    schema = index.get("schema", {})
+    he_title = index.get("heTitle", ref)
+
+    section_refs = _collect_leaf_refs(ref, schema)
+    if not section_refs:
+        return {"text": [], "en": [], "heTitle": he_title}
+
+    all_he: list = []
+    all_en: list = []
+    for section_ref in section_refs:
+        try:
+            data = pull_text_sync(section_ref, version_title=version_title, language=language)
+            he_part = data.get("text") or data.get("he") or []
+            en_part = data.get("en") or []
+            if isinstance(he_part, list):
+                all_he.extend(he_part)
+            else:
+                all_he.append(he_part)
+            if isinstance(en_part, list):
+                all_en.extend(en_part)
+            else:
+                all_en.append(en_part)
+        except Exception:
+            # Skip sections that fail (some may be empty placeholders)
+            continue
+
+    return {"text": all_he, "en": all_en, "heTitle": he_title}
+
+
 async def get_versions(ref: str) -> list[dict]:
     """
     Fetch available text versions/translations for a Sefaria ref.
