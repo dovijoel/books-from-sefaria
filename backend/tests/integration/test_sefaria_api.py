@@ -146,3 +146,108 @@ class TestGetSefariaLinks:
             data = test_client.get("/api/v1/sefaria/links/Psalms%20119").json()
 
         assert isinstance(data, list)
+
+
+# ---------------------------------------------------------------------------
+# GET /api/v1/sefaria/versions/{ref}
+# ---------------------------------------------------------------------------
+
+class TestGetTextVersions:
+    """Tests for GET /api/v1/sefaria/versions/{ref}"""
+
+    MOCK_VERSIONS = [
+        {
+            "language": "he",
+            "versionTitle": "Tanach with Taamei Hamikra",
+            "versionSource": "",
+            "languageFamilyName": "Hebrew",
+        },
+        {
+            "language": "en",
+            "versionTitle": "JPS Translation",
+            "versionSource": "",
+            "languageFamilyName": "English",
+        },
+    ]
+
+    def test_versions_endpoint_returns_200(self, test_client):
+        with patch("app.services.sefaria.get_versions", new_callable=AsyncMock) as mock_get:
+            mock_get.return_value = self.MOCK_VERSIONS
+            response = test_client.get("/api/v1/sefaria/versions/Esther")
+
+        assert response.status_code == 200
+
+    def test_versions_endpoint_returns_list(self, test_client):
+        with patch("app.services.sefaria.get_versions", new_callable=AsyncMock) as mock_get:
+            mock_get.return_value = self.MOCK_VERSIONS
+            data = test_client.get("/api/v1/sefaria/versions/Esther").json()
+
+        assert isinstance(data, list)
+        assert len(data) == 2
+
+    def test_versions_endpoint_shape(self, test_client):
+        with patch("app.services.sefaria.get_versions", new_callable=AsyncMock) as mock_get:
+            mock_get.return_value = self.MOCK_VERSIONS
+            data = test_client.get("/api/v1/sefaria/versions/Esther").json()
+
+        for v in data:
+            assert "language" in v
+            assert "versionTitle" in v
+            assert "languageFamilyName" in v
+
+    def test_versions_endpoint_502_on_error(self, test_client):
+        with patch(
+            "app.services.sefaria.get_versions",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("Sefaria down"),
+        ):
+            response = test_client.get("/api/v1/sefaria/versions/Esther")
+
+        assert response.status_code == 502
+
+
+# ---------------------------------------------------------------------------
+# GET /api/v1/sefaria/commentaries/{ref}
+# ---------------------------------------------------------------------------
+
+class TestGetTextCommentaries:
+    """Tests for GET /api/v1/sefaria/commentaries/{ref}"""
+
+    MOCK_COMMENTARIES = [
+        {"title": "Ibn Ezra", "heTitle": "אבן עזרא"},
+        {"title": "Rashi", "heTitle": "רש״י"},
+    ]
+
+    def test_commentaries_endpoint_returns_200(self, test_client):
+        with patch("app.services.sefaria.get_commentaries", new_callable=AsyncMock) as mock_get:
+            mock_get.return_value = self.MOCK_COMMENTARIES
+            response = test_client.get("/api/v1/sefaria/commentaries/Esther")
+
+        assert response.status_code == 200
+
+    def test_commentaries_endpoint_returns_list(self, test_client):
+        with patch("app.services.sefaria.get_commentaries", new_callable=AsyncMock) as mock_get:
+            mock_get.return_value = self.MOCK_COMMENTARIES
+            data = test_client.get("/api/v1/sefaria/commentaries/Esther").json()
+
+        assert isinstance(data, list)
+        assert len(data) == 2
+
+    def test_commentaries_endpoint_shape(self, test_client):
+        with patch("app.services.sefaria.get_commentaries", new_callable=AsyncMock) as mock_get:
+            mock_get.return_value = self.MOCK_COMMENTARIES
+            data = test_client.get("/api/v1/sefaria/commentaries/Esther").json()
+
+        for c in data:
+            assert "title" in c
+            assert "heTitle" in c
+
+    def test_commentaries_endpoint_502_on_error(self, test_client):
+        with patch(
+            "app.services.sefaria.get_commentaries",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("Sefaria down"),
+        ):
+            response = test_client.get("/api/v1/sefaria/commentaries/Esther")
+
+        assert response.status_code == 502

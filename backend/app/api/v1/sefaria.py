@@ -5,7 +5,12 @@ from __future__ import annotations
 
 import httpx
 from fastapi import APIRouter, HTTPException, Query
-from app.schemas.sefaria import NameSearchResult, TextResolveResult
+from app.schemas.sefaria import (
+    CommentaryOption,
+    NameSearchResult,
+    TextResolveResult,
+    TextVersion,
+)
 from app.services import sefaria as sefaria_svc
 
 router = APIRouter(prefix="/sefaria", tags=["sefaria"])
@@ -74,3 +79,29 @@ async def get_sefaria_links(ref: str, link_type: str | None = Query(default=None
     except Exception as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     return links
+
+
+@router.get("/versions/{ref:path}", response_model=list[TextVersion])
+async def get_text_versions(ref: str):
+    """Return available text versions/translations for a Sefaria text ref."""
+    try:
+        versions = await sefaria_svc.get_versions(ref)
+    except httpx.HTTPStatusError as exc:
+        status = exc.response.status_code if exc.response else 502
+        raise HTTPException(status_code=status, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    return [TextVersion(**v) for v in versions]
+
+
+@router.get("/commentaries/{ref:path}", response_model=list[CommentaryOption])
+async def get_text_commentaries(ref: str):
+    """Return available commentaries for a Sefaria text ref."""
+    try:
+        commentaries = await sefaria_svc.get_commentaries(ref)
+    except httpx.HTTPStatusError as exc:
+        status = exc.response.status_code if exc.response else 502
+        raise HTTPException(status_code=status, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    return [CommentaryOption(**c) for c in commentaries]

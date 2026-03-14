@@ -21,3 +21,15 @@ class TextInfo(BaseModel):
     title: str
     categories: list[str]
     sectionNames: list[str]
+
+
+class TextVersion(BaseModel):
+    language: str
+    versionTitle: str
+    versionSource: str
+    languageFamilyName: str
+
+
+class CommentaryOption(BaseModel):
+    title: str
+    heTitle: str

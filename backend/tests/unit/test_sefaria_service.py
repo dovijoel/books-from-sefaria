@@ -279,3 +279,154 @@ class TestGetTextDetails:
 
             with pytest.raises(Exception):
                 await get_text_details("Genesis")
+
+
+# ---------------------------------------------------------------------------
+# get_versions
+# ---------------------------------------------------------------------------
+
+class TestGetVersions:
+    """Tests for get_versions(ref: str) -> list[dict]"""
+
+    @pytest.mark.asyncio
+    async def test_get_versions_returns_list(self):
+        """get_versions normalises fields and sorts Hebrew versions first."""
+        mock_response = MagicMock(status_code=200)
+        mock_response.json.return_value = [
+            {
+                "language": "en",
+                "actualLanguage": "en",
+                "versionTitle": "JPS Translation",
+                "versionSource": "https://example.com",
+                "languageFamilyName": "English",
+            },
+            {
+                "language": "he",
+                "actualLanguage": "he",
+                "versionTitle": "Tanach with Taamei Hamikra",
+                "versionSource": "https://example.com/he",
+                "languageFamilyName": "Hebrew",
+            },
+        ]
+        mock_response.raise_for_status = MagicMock()
+
+        with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
+            mock_get.return_value = mock_response
+            from app.services.sefaria import get_versions
+
+            result = await get_versions("Esther")
+
+        assert isinstance(result, list)
+        assert len(result) == 2
+        # Hebrew version should come first
+        assert result[0]["language"] == "he"
+        assert result[1]["language"] == "en"
+        assert "versionTitle" in result[0]
+        assert "languageFamilyName" in result[0]
+
+    @pytest.mark.asyncio
+    async def test_get_versions_encodes_ref_in_url(self):
+        """Ref with spaces is URL-encoded in the request."""
+        mock_response = MagicMock(status_code=200)
+        mock_response.json.return_value = []
+        mock_response.raise_for_status = MagicMock()
+
+        with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
+            mock_get.return_value = mock_response
+            from app.services.sefaria import get_versions
+
+            await get_versions("Genesis 1")
+
+        called_url = mock_get.call_args[0][0]
+        assert " " not in called_url
+
+    @pytest.mark.asyncio
+    async def test_get_versions_network_error_raises(self):
+        with patch("httpx.AsyncClient.get", side_effect=httpx.NetworkError("down")):
+            from app.services.sefaria import get_versions
+
+            with pytest.raises(Exception):
+                await get_versions("Esther")
+
+
+# ---------------------------------------------------------------------------
+# get_commentaries
+# ---------------------------------------------------------------------------
+
+class TestGetCommentaries:
+    """Tests for get_commentaries(ref: str) -> list[dict]"""
+
+    @pytest.mark.asyncio
+    async def test_get_commentaries_returns_unique_titles(self):
+        """get_commentaries deduplicates commentary titles and sorts alphabetically."""
+        mock_links = [
+            {
+                "type": "commentary",
+                "collectiveTitle": {"en": "Rashi", "he": "רש״י"},
+                "anchorRef": "Esther 1:1",
+            },
+            {
+                "type": "commentary",
+                "collectiveTitle": {"en": "Ibn Ezra", "he": "אבן עזרא"},
+                "anchorRef": "Esther 1:2",
+            },
+            # Duplicate Rashi entry
+            {
+                "type": "commentary",
+                "collectiveTitle": {"en": "Rashi", "he": "רש״י"},
+                "anchorRef": "Esther 1:3",
+            },
+        ]
+
+        with patch("app.services.sefaria.pull_links", new_callable=AsyncMock) as mock_pull_links:
+            mock_pull_links.return_value = mock_links
+            from app.services.sefaria import get_commentaries
+
+            result = await get_commentaries("Esther")
+
+        assert isinstance(result, list)
+        assert len(result) == 2
+        titles = [r["title"] for r in result]
+        assert titles == sorted(titles)
+        assert "Rashi" in titles
+        assert "Ibn Ezra" in titles
+
+    @pytest.mark.asyncio
+    async def test_get_commentaries_handles_string_collective_title(self):
+        """When collectiveTitle is a plain string it is used directly."""
+        mock_links = [
+            {
+                "type": "commentary",
+                "collectiveTitle": "Sforno",
+                "anchorRef": "Esther 1:1",
+            },
+        ]
+
+        with patch("app.services.sefaria.pull_links", new_callable=AsyncMock) as mock_pull_links:
+            mock_pull_links.return_value = mock_links
+            from app.services.sefaria import get_commentaries
+
+            result = await get_commentaries("Esther")
+
+        assert len(result) == 1
+        assert result[0]["title"] == "Sforno"
+
+    @pytest.mark.asyncio
+    async def test_get_commentaries_fallback_to_book_field(self):
+        """When collectiveTitle is missing, falls back to the book field."""
+        mock_links = [
+            {
+                "type": "commentary",
+                "book": "Malbim",
+                "anchorRef": "Esther 1:1",
+            },
+        ]
+
+        with patch("app.services.sefaria.pull_links", new_callable=AsyncMock) as mock_pull_links:
+            mock_pull_links.return_value = mock_links
+            from app.services.sefaria import get_commentaries
+
+            result = await get_commentaries("Esther")
+
+        assert len(result) == 1
+        assert result[0]["title"] == "Malbim"

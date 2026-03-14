@@ -7,6 +7,7 @@ from __future__ import annotations
 import html as html_lib
 import re
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
@@ -25,6 +26,7 @@ SEFARIA_LINKS_API = "https://www.sefaria.org/api/links/{ref}?with_text=0"
 SEFARIA_INDEX_API = "https://www.sefaria.org/api/index/{ref}"
 SEFARIA_NAME_API = "https://www.sefaria.org/api/name/{query}?limit=20&type=ref"
 SEFARIA_TEXT_API = "https://www.sefaria.org/api/texts/{ref}?context=0&pad=0&commentary=0"
+SEFARIA_VERSIONS_API = "https://www.sefaria.org/api/versions/{ref}"
 
 
 # ── Search ────────────────────────────────────────────────────────────────────
@@ -125,11 +127,16 @@ def _normalize_live_api_response(data: dict) -> dict:
     return data
 
 
-async def pull_text(ref: str) -> dict[str, Any]:
+async def pull_text(
+    ref: str,
+    version_title: str | None = None,
+    language: str | None = None,
+) -> dict[str, Any]:
     """
     Fetch a Sefaria text JSON by ref.
     - If *ref* is a full GitHub path (≥3 slashes), tries Sefaria-Export GitHub first.
     - Otherwise (or on 404), falls back to the live Sefaria /api/texts/ endpoint.
+    - Optional *version_title* and *language* are appended to the live API URL when given.
     """
     path = ref.replace(" ", "%20")
     async with httpx.AsyncClient(timeout=settings.http_timeout) as client:
@@ -140,16 +147,25 @@ async def pull_text(ref: str) -> dict[str, Any]:
                 return resp.json()
         # Fall back to live Sefaria API
         live_url = SEFARIA_TEXT_API.format(ref=path)
+        if version_title:
+            live_url += f"&versionTitle={quote(version_title)}"
+        if language:
+            live_url += f"&lang={quote(language)}"
         resp = await client.get(live_url)
         resp.raise_for_status()
         return _normalize_live_api_response(resp.json())
 
 
-def pull_text_sync(ref: str) -> dict[str, Any]:
+def pull_text_sync(
+    ref: str,
+    version_title: str | None = None,
+    language: str | None = None,
+) -> dict[str, Any]:
     """
     Synchronous version of pull_text for use in Celery tasks.
     - If *ref* is a full GitHub path (≥3 slashes), tries Sefaria-Export GitHub first.
     - Otherwise (or on 404), falls back to the live Sefaria /api/texts/ endpoint.
+    - Optional *version_title* and *language* are appended to the live API URL when given.
     """
     path = ref.replace(" ", "%20")
     with httpx.Client(timeout=settings.http_timeout) as client:
@@ -160,6 +176,10 @@ def pull_text_sync(ref: str) -> dict[str, Any]:
                 return resp.json()
         # Fall back to live Sefaria API
         live_url = SEFARIA_TEXT_API.format(ref=path)
+        if version_title:
+            live_url += f"&versionTitle={quote(version_title)}"
+        if language:
+            live_url += f"&lang={quote(language)}"
         resp = client.get(live_url)
         resp.raise_for_status()
         return _normalize_live_api_response(resp.json())
@@ -173,6 +193,65 @@ async def get_text_details(ref: str) -> dict[str, Any]:
         resp = await client.get(url)
         resp.raise_for_status()
         return resp.json()
+
+
+async def get_versions(ref: str) -> list[dict]:
+    """
+    Fetch available text versions/translations for a Sefaria ref.
+    Returns list of {language, versionTitle, versionSource, languageFamilyName}.
+    Sefaria API: GET /api/versions/{ref}
+    """
+    encoded = ref.replace(" ", "%20")
+    url = SEFARIA_VERSIONS_API.format(ref=encoded)
+    async with httpx.AsyncClient(timeout=settings.http_timeout) as client:
+        resp = await client.get(url)
+        resp.raise_for_status()
+        versions: list[dict] = resp.json()
+    result = []
+    for v in versions:
+        result.append({
+            "language": v.get("actualLanguage") or v.get("language", ""),
+            "versionTitle": v.get("versionTitle", ""),
+            "versionSource": v.get("versionSource", ""),
+            "languageFamilyName": v.get("languageFamilyName", ""),
+        })
+
+    def _sort_key(v: dict) -> tuple:
+        lang = v["language"]
+        if lang in ("he", "arc"):
+            return (0, v["versionTitle"])
+        if lang == "en":
+            return (1, v["versionTitle"])
+        return (2, v["versionTitle"])
+
+    result.sort(key=_sort_key)
+    return result
+
+
+async def get_commentaries(ref: str) -> list[dict]:
+    """
+    Fetch available commentaries for a Sefaria ref by extracting unique book titles
+    from the links API. Returns list of {title, heTitle}.
+    """
+    links = await pull_links(ref, link_type="commentary")
+    seen: set[str] = set()
+    result: list[dict] = []
+    for link in links:
+        title = ""
+        he_title = ""
+        ct = link.get("collectiveTitle") or {}
+        if isinstance(ct, dict):
+            title = ct.get("en", "")
+            he_title = ct.get("he", "")
+        elif isinstance(ct, str):
+            title = ct
+        if not title:
+            title = link.get("book", "")
+        if title and title not in seen:
+            seen.add(title)
+            result.append({"title": title, "heTitle": he_title})
+    result.sort(key=lambda x: x["title"])
+    return result
 
 
 async def get_index_json(masekhet: str) -> list[dict]:
