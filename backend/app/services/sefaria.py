@@ -26,7 +26,7 @@ SEFARIA_LINKS_API = "https://www.sefaria.org/api/links/{ref}?with_text=0"
 SEFARIA_INDEX_API = "https://www.sefaria.org/api/index/{ref}"
 SEFARIA_NAME_API = "https://www.sefaria.org/api/name/{query}?limit=20&type=ref"
 SEFARIA_TEXT_API = "https://www.sefaria.org/api/texts/{ref}?context=0&pad=0&commentary=0"
-SEFARIA_VERSIONS_API = "https://www.sefaria.org/api/versions/{ref}"
+SEFARIA_VERSIONS_API = "https://www.sefaria.org/api/texts/versions/{ref}"
 
 
 # ── Search ────────────────────────────────────────────────────────────────────
@@ -199,7 +199,7 @@ async def get_versions(ref: str) -> list[dict]:
     """
     Fetch available text versions/translations for a Sefaria ref.
     Returns list of {language, versionTitle, versionSource, languageFamilyName}.
-    Sefaria API: GET /api/versions/{ref}
+    Sefaria API: GET /api/texts/versions/{ref}
     """
     encoded = ref.replace(" ", "%20")
     url = SEFARIA_VERSIONS_API.format(ref=encoded)
