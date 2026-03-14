@@ -3,6 +3,8 @@ export interface TextEntry {
   link: string;
   commentary: string[];
   translation?: string;
+  translation_language?: string;
+  version_title?: string;
   range?: string;
   dafrange?: string;
   format?: Partial<BookFormatSettings>;
@@ -72,6 +74,18 @@ export interface BookConfigListItem {
   description?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface TextVersion {
+  language: string;
+  versionTitle: string;
+  versionSource: string;
+  languageFamilyName: string;
+}
+
+export interface CommentaryOption {
+  title: string;
+  heTitle: string;
 }
 
 export const DEFAULT_FORMAT: BookFormatSettings = {

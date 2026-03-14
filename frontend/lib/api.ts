@@ -1,5 +1,5 @@
 ﻿import axios from "axios";
-import { BookConfig, BookConfigListItem, Job, SefariaTextSearchResult, TextEntry } from "./types";
+import { BookConfig, BookConfigListItem, Job, SefariaTextSearchResult, TextEntry, TextVersion, CommentaryOption } from "./types";
 
 const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000",
@@ -130,6 +130,16 @@ export const api = {
     const { data } = await apiClient.get(
       `/api/v1/sefaria/text/${encodeURIComponent(ref)}`
     );
+    return data;
+  },
+
+  getVersions: async (ref: string): Promise<TextVersion[]> => {
+    const { data } = await apiClient.get(`/api/v1/sefaria/versions/${encodeURIComponent(ref)}`);
+    return data;
+  },
+
+  getCommentaries: async (ref: string): Promise<CommentaryOption[]> => {
+    const { data } = await apiClient.get(`/api/v1/sefaria/commentaries/${encodeURIComponent(ref)}`);
     return data;
   },
 

@@ -169,3 +169,109 @@ describe('deleteConfig', () => {
     expect(true).toBe(true);
   });
 });
+
+// ---------------------------------------------------------------------------
+// getVersions
+// ---------------------------------------------------------------------------
+describe('getVersions', () => {
+  const mockVersions = [
+    { language: 'he', versionTitle: 'Mikraot Gedolot', versionSource: '', languageFamilyName: 'Hebrew' },
+    { language: 'en', versionTitle: 'JPS 1917', versionSource: '', languageFamilyName: 'English' },
+  ];
+
+  it('calls versions endpoint and returns TextVersion array', async () => {
+    let mockGet: jest.Mock;
+    let testApi: typeof import('@/lib/api').api;
+
+    jest.isolateModules(() => {
+      mockGet = jest.fn().mockResolvedValue({ data: mockVersions });
+      jest.doMock('axios', () => ({
+        create: jest.fn(() => ({
+          get: mockGet,
+          interceptors: { response: { use: jest.fn() } },
+          defaults: { baseURL: 'http://localhost:8000' },
+        })),
+      }));
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      testApi = require('@/lib/api').api;
+    });
+
+    const result = await testApi!.getVersions('Genesis');
+    expect(mockGet!).toHaveBeenCalledWith('/api/v1/sefaria/versions/Genesis');
+    expect(result).toEqual(mockVersions);
+  });
+
+  it('URL-encodes refs with spaces', async () => {
+    let mockGet: jest.Mock;
+    let testApi: typeof import('@/lib/api').api;
+
+    jest.isolateModules(() => {
+      mockGet = jest.fn().mockResolvedValue({ data: [] });
+      jest.doMock('axios', () => ({
+        create: jest.fn(() => ({
+          get: mockGet,
+          interceptors: { response: { use: jest.fn() } },
+          defaults: { baseURL: 'http://localhost:8000' },
+        })),
+      }));
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      testApi = require('@/lib/api').api;
+    });
+
+    await testApi!.getVersions('Genesis 1');
+    expect(mockGet!).toHaveBeenCalledWith('/api/v1/sefaria/versions/Genesis%201');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getCommentaries
+// ---------------------------------------------------------------------------
+describe('getCommentaries', () => {
+  const mockCommentaries = [
+    { title: 'Rashi', heTitle: 'רש"י' },
+    { title: 'Tosafot', heTitle: 'תוספות' },
+  ];
+
+  it('calls commentaries endpoint and returns CommentaryOption array', async () => {
+    let mockGet: jest.Mock;
+    let testApi: typeof import('@/lib/api').api;
+
+    jest.isolateModules(() => {
+      mockGet = jest.fn().mockResolvedValue({ data: mockCommentaries });
+      jest.doMock('axios', () => ({
+        create: jest.fn(() => ({
+          get: mockGet,
+          interceptors: { response: { use: jest.fn() } },
+          defaults: { baseURL: 'http://localhost:8000' },
+        })),
+      }));
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      testApi = require('@/lib/api').api;
+    });
+
+    const result = await testApi!.getCommentaries('Genesis');
+    expect(mockGet!).toHaveBeenCalledWith('/api/v1/sefaria/commentaries/Genesis');
+    expect(result).toEqual(mockCommentaries);
+  });
+
+  it('URL-encodes refs with spaces', async () => {
+    let mockGet: jest.Mock;
+    let testApi: typeof import('@/lib/api').api;
+
+    jest.isolateModules(() => {
+      mockGet = jest.fn().mockResolvedValue({ data: [] });
+      jest.doMock('axios', () => ({
+        create: jest.fn(() => ({
+          get: mockGet,
+          interceptors: { response: { use: jest.fn() } },
+          defaults: { baseURL: 'http://localhost:8000' },
+        })),
+      }));
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      testApi = require('@/lib/api').api;
+    });
+
+    await testApi!.getCommentaries('Bava Metzia');
+    expect(mockGet!).toHaveBeenCalledWith('/api/v1/sefaria/commentaries/Bava%20Metzia');
+  });
+});
