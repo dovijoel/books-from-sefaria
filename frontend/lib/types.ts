@@ -119,16 +119,7 @@ export const DEFAULT_FORMAT: BookFormatSettings = {
   titleheb: "",
 };
 
-export const COMMENTARY_OPTIONS = [
-  { value: "Rashi", label: "Rashi (רש״י)" },
-  { value: "Tosafot", label: "Tosafot (תוספות)" },
-  { value: "Rambam", label: "Rambam (רמב״ם)" },
-  { value: "Ramban", label: "Ramban (רמב״ן)" },
-  { value: "Ibn Ezra", label: "Ibn Ezra (אבן עזרא)" },
-  { value: "Sforno", label: "Sforno (ספורנו)" },
-  { value: "Kli Yakar", label: "Kli Yakar (כלי יקר)" },
-  { value: "Or HaChaim", label: "Or HaChaim (אור החיים)" },
-];
+export const COMMENTARY_OPTIONS: { value: string; label: string }[] = [];
 
 export const HEBREW_FONTS = [
   "Frank Ruehl CLM",

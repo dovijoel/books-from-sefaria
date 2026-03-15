@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { TextEntry, TextVersion, CommentaryOption, COMMENTARY_OPTIONS } from "@/lib/types";
+import { TextEntry, TextVersion, CommentaryOption } from "@/lib/types";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -48,11 +48,11 @@ export function TextCard({ entry, index, onChange, onRemove }: TextCardProps) {
   const hebrewVersions = versions?.filter((v) => v.language === "he") ?? [];
   const englishVersions = versions?.filter((v) => v.language === "en") ?? [];
 
-  // Use dynamic commentaries from the API when available; fall back to the static list.
+  // Only show commentaries that are actually available for this text (no static fallback).
   const commentaryItems =
     dynamicCommentaries && dynamicCommentaries.length > 0
       ? dynamicCommentaries.map((c) => ({ value: c.title, label: c.heTitle ? `${c.title} (${c.heTitle})` : c.title }))
-      : COMMENTARY_OPTIONS;
+      : [];
 
   const toggleCommentary = (value: string) => {
     const current = entry.commentary ?? [];
@@ -211,24 +211,32 @@ export function TextCard({ entry, index, onChange, onRemove }: TextCardProps) {
                 )}
               </Label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {commentaryItems.map(({ value, label }) => (
-                  <label
-                    key={value}
-                    className={cn(
-                      "flex items-center gap-2 cursor-pointer rounded-md border px-2 py-1.5 text-xs transition-colors",
-                      entry.commentary.includes(value)
-                        ? "border-sefaria-blue bg-sefaria-blue/5 text-sefaria-blue"
-                        : "border-border hover:border-sefaria-blue/40"
-                    )}
-                  >
-                    <Checkbox
-                      checked={entry.commentary.includes(value)}
-                      onCheckedChange={() => toggleCommentary(value)}
-                      className="h-3 w-3"
-                    />
-                    <span className="truncate" title={label}>{value}</span>
-                  </label>
-                ))}
+                {commentaryItems.length > 0 ? (
+                  commentaryItems.map(({ value, label }) => (
+                    <label
+                      key={value}
+                      className={cn(
+                        "flex items-center gap-2 cursor-pointer rounded-md border px-2 py-1.5 text-xs transition-colors",
+                        entry.commentary.includes(value)
+                          ? "border-sefaria-blue bg-sefaria-blue/5 text-sefaria-blue"
+                          : "border-border hover:border-sefaria-blue/40"
+                      )}
+                    >
+                      <Checkbox
+                        checked={entry.commentary.includes(value)}
+                        onCheckedChange={() => toggleCommentary(value)}
+                        className="h-3 w-3"
+                      />
+                      <span className="truncate" title={label}>{value}</span>
+                    </label>
+                  ))
+                ) : (
+                  !commentariesLoading && (
+                    <p className="text-xs text-muted-foreground col-span-full">
+                      No commentaries available for this text.
+                    </p>
+                  )
+                )}
               </div>
             </div>
           </div>
