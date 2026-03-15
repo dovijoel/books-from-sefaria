@@ -33,6 +33,7 @@ export default function RootLayout({
             defer
             src="/umami/script.js"
             data-website-id={process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID}
+            data-host-url="/umami"
           />
         )}
       </head>
