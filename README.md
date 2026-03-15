@@ -2,6 +2,8 @@
 
 > **Create beautifully typeset PDF books from Jewish texts on the [Sefaria](https://www.sefaria.org) platform.**
 
+🌐 **Live site:** [sefariabookcreator.debuggingmadejoyful.tech](https://sefariabookcreator.debuggingmadejoyful.tech)
+
 <!-- Screenshot placeholder -->
 <!-- ![Sefaria Book Creator screenshot](docs/screenshot.png) -->
 
