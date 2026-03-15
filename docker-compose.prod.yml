@@ -167,6 +167,7 @@ services:
       target: runner
       args:
         - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost}
+        - NEXT_PUBLIC_UMAMI_WEBSITE_ID=${NEXT_PUBLIC_UMAMI_WEBSITE_ID:-}
     environment:
       - NODE_ENV=production
     restart: unless-stopped
