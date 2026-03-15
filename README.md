@@ -29,8 +29,8 @@
 ### 1 — Clone the repository
 
 ```bash
-git clone https://github.com/<your-org>/sefaria-book-creator.git
-cd sefaria-book-creator
+git clone https://github.com/dovijoel/books-from-sefaria.git
+cd books-from-sefaria
 ```
 
 ### 2 — Configure environment variables
@@ -191,7 +191,13 @@ sefaria-book-creator/
 
 ---
 
-## 🤝 Contributing
+## 🤝 Contributing & Issues
+
+**GitHub:** [github.com/dovijoel/books-from-sefaria](https://github.com/dovijoel/books-from-sefaria)
+
+Found a bug? Have a feature request? [Open an issue](https://github.com/dovijoel/books-from-sefaria/issues) — contributions and feedback are welcome!
+
+### How to contribute
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feat/my-feature`
@@ -206,6 +212,12 @@ Please follow [Conventional Commits](https://www.conventionalcommits.org/) and e
 ## 📜 License
 
 This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+
+### Text Content Attribution
+
+The Jewish texts accessed through this application are provided by the [Sefaria](https://www.sefaria.org) platform. Sefaria's own translations and original content are released under a [CC-BY-NC](https://creativecommons.org/licenses/by-nc/4.0/) (Creative Commons Attribution-NonCommercial) license. Public domain source texts (e.g., Torah, Talmud, classical commentaries) remain in the public domain. Please review [Sefaria's terms of use](https://www.sefaria.org/terms) for full details on content licensing.
+
+This tool generates PDFs from Sefaria's API for personal and educational use. If you plan to distribute generated content commercially, verify compliance with Sefaria's licensing terms.
 
 ---
 
