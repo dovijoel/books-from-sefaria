@@ -139,7 +139,7 @@ POSTGRES_PASSWORD=$(python3 -c "import secrets; print(secrets.token_hex(16))")
 # Set these in .env.production:
 # SECRET_KEY=<generated above>
 # POSTGRES_PASSWORD=<generated above>
-# DATABASE_URL=postgresql+asyncpg://sefaria:<password>@db:5432/sefaria_books
+# DATABASE_URL=postgresql://sefaria:<password>@db:5432/sefaria_books
 # NEXT_PUBLIC_API_URL=http://YOUR_PUBLIC_IP  (or https://your-domain.com)
 ```
 
